@@ -40,15 +40,15 @@ export function getSupabaseConfig(): SupabaseConfigStatus {
 }
 
 export function verifySharedPassword(request: Request): boolean {
-  const configuredPassword = process.env.APP_SHARED_PASSWORD;
-  const providedPassword = request.headers.get("x-app-password");
+  const configuredPassword = process.env.APP_SHARED_PASSWORD?.trim();
+  const providedPassword = request.headers.get("x-app-password")?.trim();
 
   return Boolean(configuredPassword && providedPassword && providedPassword === configuredPassword);
 }
 
 export function verifyUploadPassword(request: Request): boolean {
-  const uploadPassword = process.env.ADMIN_UPLOAD_PASSWORD ?? process.env.APP_SHARED_PASSWORD;
-  const providedPassword = request.headers.get("x-upload-password");
+  const uploadPassword = (process.env.ADMIN_UPLOAD_PASSWORD ?? process.env.APP_SHARED_PASSWORD)?.trim();
+  const providedPassword = request.headers.get("x-upload-password")?.trim();
 
   return Boolean(uploadPassword && providedPassword && providedPassword === uploadPassword);
 }
