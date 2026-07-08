@@ -60,6 +60,7 @@ button:disabled {
 
 .toolbar,
 .searchPanel,
+.settingsPanel,
 .resultPane {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -163,6 +164,17 @@ p {
   clip: rect(0 0 0 0);
   white-space: nowrap;
   clip-path: inset(50%);
+}
+
+.settingsPanel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 14px;
 }
 
 .searchPanel {
@@ -345,7 +357,8 @@ p {
   }
 
   .toolbar,
-  .searchPanel {
+  .searchPanel,
+  .settingsPanel {
     align-items: stretch;
     flex-direction: column;
   }

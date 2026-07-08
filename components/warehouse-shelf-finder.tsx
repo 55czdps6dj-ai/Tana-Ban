@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   RotateCcw,
   Search,
+  Settings,
   Upload
 } from "lucide-react";
 import { ChangeEvent, useMemo, useRef, useState } from "react";
@@ -26,6 +27,7 @@ export function WarehouseShelfFinder() {
   const [isImporting, setIsImporting] = useState(false);
   const [searchInput, setSearchInput] = useState(query);
   const [hasSearched, setHasSearched] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const productInputRef = useRef<HTMLInputElement>(null);
 
   const filteredProducts = useMemo(
@@ -49,6 +51,7 @@ export function WarehouseShelfFinder() {
       setQuery("");
       setSearchInput("");
       setHasSearched(false);
+      setIsSettingsOpen(false);
     } else {
       setErrorMessage(result.errorMessage);
     }
@@ -89,16 +92,6 @@ export function WarehouseShelfFinder() {
             onChange={handleProductImport}
           />
           <button
-            className="secondaryButton"
-            type="button"
-            onClick={() => productInputRef.current?.click()}
-            disabled={isImporting}
-            title="商品Excelを取り込む"
-          >
-            <Upload size={18} aria-hidden="true" />
-            商品Excel
-          </button>
-          <button
             className="iconButton"
             type="button"
             onClick={handleResetSampleData}
@@ -107,8 +100,37 @@ export function WarehouseShelfFinder() {
           >
             <RotateCcw size={18} aria-hidden="true" />
           </button>
+          <button
+            className="iconButton"
+            type="button"
+            onClick={() => setIsSettingsOpen((current) => !current)}
+            title="設定"
+            aria-label="設定"
+            aria-expanded={isSettingsOpen}
+          >
+            <Settings size={18} aria-hidden="true" />
+          </button>
         </div>
       </section>
+
+      {isSettingsOpen ? (
+        <section className="settingsPanel" aria-label="設定">
+          <div>
+            <h2>設定</h2>
+            <p>商品マスタを更新する時だけここからExcelを読み込みます。</p>
+          </div>
+          <button
+            className="secondaryButton"
+            type="button"
+            onClick={() => productInputRef.current?.click()}
+            disabled={isImporting}
+            title="商品マスタExcelを取り込む"
+          >
+            <Upload size={18} aria-hidden="true" />
+            商品マスタExcel
+          </button>
+        </section>
+      ) : null}
 
       <section className="searchPanel focusedSearchPanel" aria-label="商品検索">
         <form
@@ -125,8 +147,8 @@ export function WarehouseShelfFinder() {
               setHasSearched(false);
               setSelectedShelfNumber(null);
             }}
-            placeholder="商品名・型番・棚番号を入力"
-            aria-label="商品名、型番、棚番号で検索"
+            placeholder="単品番号・商品名・型番・棚番号を入力"
+            aria-label="単品番号、商品名、型番、棚番号で検索"
           />
           <button
             className="searchButton"
@@ -173,6 +195,7 @@ export function WarehouseShelfFinder() {
                   <span className="resultShelf">{product.shelfNumber}</span>
                   <span className="resultText">
                     <strong>{product.productName || "商品名未設定"}</strong>
+                    <small>単品番号: {product.itemNumber || "未設定"}</small>
                     <small>{product.modelNumber || "型番未設定"}</small>
                     <small>{formatShelfDescription(product.shelfNumber)}</small>
                   </span>

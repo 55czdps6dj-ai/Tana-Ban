@@ -9,6 +9,7 @@ type ProductSheetCandidate = {
 };
 
 const productNameHeaders = ["商品名", "商品名2", "品名", "品名1", "productName", "product_name", "name"];
+const itemNumberHeaders = ["単品番号", "単品No", "単品NO", "itemNumber", "item_number"];
 const modelNumberHeaders = ["型番", "方番号", "品番", "品名2", "modelNumber", "model_number", "sku"];
 const shelfNumberHeaders = ["棚番号", "棚番", "棚", "shelfNumber", "shelf_number", "location"];
 const splitShelfNumberHeaders = ["棚番号1", "棚番号2", "棚番号3"];
@@ -131,6 +132,7 @@ export function normalizeShelfNumber(value: string): string {
 }
 
 function toProductRecord(row: SheetRow, index: number): ProductRecord | null {
+  const itemNumber = readStringValue(row, itemNumberHeaders);
   const productName = readStringValue(row, productNameHeaders);
   const modelNumber = readStringValue(row, modelNumberHeaders);
   const shelfNumber = normalizeShelfNumber(readShelfNumber(row));
@@ -151,6 +153,7 @@ function toProductRecord(row: SheetRow, index: number): ProductRecord | null {
 
   return {
     id: `product-${Date.now()}-${index}`,
+    itemNumber,
     productName,
     modelNumber,
     shelfNumber,

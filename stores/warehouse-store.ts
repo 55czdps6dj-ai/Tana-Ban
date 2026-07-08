@@ -69,6 +69,7 @@ export function selectFilteredProducts(products: ProductRecord[], query: string)
     const searchableText = normalizeSearchText(
       [
         product.productName,
+        product.itemNumber,
         product.modelNumber,
         product.shelfNumber,
         product.keywords.join(" ")
