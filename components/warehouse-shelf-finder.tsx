@@ -4,7 +4,6 @@ import {
   AlertTriangle,
   FileSpreadsheet,
   LocateFixed,
-  PackageSearch,
   RotateCcw,
   Search,
   Upload
@@ -40,12 +39,14 @@ export function WarehouseShelfFinder() {
     resetSampleData
   } = useWarehouseStore();
   const [isImporting, setIsImporting] = useState(false);
+  const [searchInput, setSearchInput] = useState(query);
+  const [hasSearched, setHasSearched] = useState(false);
   const mapInputRef = useRef<HTMLInputElement>(null);
   const productInputRef = useRef<HTMLInputElement>(null);
 
   const filteredProducts = useMemo(
-    () => selectFilteredProducts(products, query),
-    [products, query]
+    () => (hasSearched && query.trim().length > 0 ? selectFilteredProducts(products, query) : []),
+    [hasSearched, products, query]
   );
   const highlightedShelves = useMemo(
     () => selectMatchedShelfNumbers(filteredProducts, selectedShelfNumber),
@@ -78,6 +79,7 @@ export function WarehouseShelfFinder() {
 
     if (result.ok) {
       setWarehouseMap(result.value, result.sourceName);
+      setHasSearched(false);
     } else {
       setErrorMessage(result.errorMessage);
     }
@@ -98,6 +100,9 @@ export function WarehouseShelfFinder() {
 
     if (result.ok) {
       setProducts(result.value, result.sourceName);
+      setQuery("");
+      setSearchInput("");
+      setHasSearched(false);
     } else {
       setErrorMessage(result.errorMessage);
     }
@@ -114,6 +119,20 @@ export function WarehouseShelfFinder() {
     setSelectedShelfNumber(
       selectedShelfNumber === normalizedShelfNumber ? null : normalizedShelfNumber
     );
+  };
+
+  const handleSearch = () => {
+    const trimmedQuery = searchInput.trim();
+
+    setQuery(trimmedQuery);
+    setSelectedShelfNumber(null);
+    setHasSearched(trimmedQuery.length > 0);
+  };
+
+  const handleResetSampleData = () => {
+    resetSampleData();
+    setSearchInput("");
+    setHasSearched(false);
   };
 
   const selectedShelfProducts = selectedShelfNumber
@@ -171,7 +190,7 @@ export function WarehouseShelfFinder() {
           <button
             className="iconButton"
             type="button"
-            onClick={resetSampleData}
+            onClick={handleResetSampleData}
             title="サンプルに戻す"
             aria-label="サンプルに戻す"
           >
@@ -181,18 +200,32 @@ export function WarehouseShelfFinder() {
       </section>
 
       <section className="searchPanel" aria-label="商品検索">
-        <div className="searchBox">
-          <Search size={20} aria-hidden="true" />
+        <form
+          className="searchBox"
+          onSubmit={(event) => {
+            event.preventDefault();
+            handleSearch();
+          }}
+        >
           <input
-            value={query}
+            value={searchInput}
             onChange={(event) => {
-              setQuery(event.target.value);
+              setSearchInput(event.target.value);
+              setHasSearched(false);
               setSelectedShelfNumber(null);
             }}
             placeholder="例: ボルト、BT-M8、A-02"
             aria-label="商品名、型番、棚番号で検索"
           />
-        </div>
+          <button
+            className="searchButton"
+            type="submit"
+            title="検索する"
+            aria-label="検索する"
+          >
+            <Search size={20} aria-hidden="true" />
+          </button>
+        </form>
         <div className="dataStatus" aria-label="取り込み状況">
           <span>地図: {mapSourceName}</span>
           <span>商品: {productSourceName}</span>
@@ -212,7 +245,8 @@ export function WarehouseShelfFinder() {
             <div>
               <h2>倉庫マップ</h2>
               <p>
-                棚数 {totalShelfCount} / ハイライト {highlightedShelves.size}
+                棚数 {totalShelfCount}
+                {hasSearched ? ` / 該当 ${highlightedShelves.size}` : ""}
               </p>
             </div>
             {selectedShelfNumber ? (
@@ -246,8 +280,7 @@ export function WarehouseShelfFinder() {
                     className={[
                       "mapCell",
                       isShelf ? "shelfCell" : "noteCell",
-                      isHighlighted ? "highlightCell" : "",
-                      isSelected ? "selectedCell" : ""
+                      isHighlighted || isSelected ? "highlightCell" : ""
                     ].join(" ")}
                     type="button"
                     onClick={() => handleShelfClick(cell)}
@@ -267,9 +300,8 @@ export function WarehouseShelfFinder() {
           <div className="paneHeader">
             <div>
               <h2>検索結果</h2>
-              <p>{filteredProducts.length} 件</p>
+              <p>{hasSearched ? `${filteredProducts.length} 件` : "検索ボタンを押すまで非表示"}</p>
             </div>
-            <PackageSearch size={22} aria-hidden="true" />
           </div>
 
           {selectedShelfNumber ? (
@@ -277,7 +309,9 @@ export function WarehouseShelfFinder() {
           ) : null}
 
           <div className="resultList">
-            {filteredProducts.length > 0 ? (
+            {!hasSearched ? (
+              <div className="emptyState">キーワードを入力して虫眼鏡ボタンを押してください。</div>
+            ) : filteredProducts.length > 0 ? (
               filteredProducts.map((product) => (
                 <button
                   key={product.id}

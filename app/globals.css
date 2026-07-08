@@ -2,13 +2,13 @@
   color-scheme: light;
   --bg: #f4f7f6;
   --surface: #ffffff;
-  --surface-2: #eef3f1;
+  --surface-2: #f7f7f7;
   --text: #17211d;
   --muted: #66736e;
   --line: #d7dfdc;
-  --primary: #12685a;
-  --primary-strong: #0c4d43;
-  --primary-soft: #d8f1ea;
+  --primary: #1f2937;
+  --primary-strong: #111827;
+  --primary-soft: #f3f4f6;
   --accent: #f0b429;
   --accent-soft: #fff3cf;
   --danger: #b42318;
@@ -190,11 +190,10 @@ p {
   min-width: 240px;
   flex: 1;
   align-items: center;
-  gap: 10px;
-  border: 2px solid var(--primary);
+  border: 1px solid var(--line);
   border-radius: 8px;
   background: #ffffff;
-  padding: 0 14px;
+  padding: 0 6px 0 14px;
 }
 
 .searchBox input {
@@ -204,6 +203,22 @@ p {
   outline: 0;
   color: var(--text);
   font-size: 18px;
+}
+
+.searchButton {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--primary);
+  border-radius: 7px;
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.searchButton:hover {
+  background: #374151;
 }
 
 .dataStatus {
@@ -250,25 +265,26 @@ p {
 
 .warehouseGrid {
   display: grid;
-  gap: 8px;
+  gap: 0;
   overflow: auto;
   min-height: 480px;
   max-height: calc(100vh - 240px);
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface-2);
-  padding: 12px;
+  border-radius: 0;
+  background: #ffffff;
+  padding: 0;
 }
 
 .mapCell {
-  min-width: 54px;
-  min-height: 58px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
+  min-width: 42px;
+  min-height: 28px;
+  margin: -1px 0 0 -1px;
+  border: 1px solid #d9d9d9;
+  border-radius: 0;
   background: #ffffff;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
+  color: #1f2937;
+  font-size: 12px;
+  font-weight: 500;
   line-height: 1.25;
   overflow-wrap: anywhere;
 }
@@ -279,27 +295,22 @@ p {
 }
 
 .shelfCell:hover {
-  border-color: var(--primary);
-  background: var(--primary-soft);
+  border-color: #a3a3a3;
+  background: #fafafa;
 }
 
 .noteCell {
-  background: #e6ece9;
-  color: #77847f;
+  background: #ffffff;
+  color: #6b7280;
 }
 
 .highlightCell {
-  border-color: #c28300;
+  position: relative;
+  z-index: 1;
+  border-color: #d97706;
   background: var(--accent-soft);
-  color: #4c3b08;
+  color: #111827;
   box-shadow: inset 0 0 0 2px var(--accent);
-}
-
-.selectedCell {
-  border-color: var(--primary-strong);
-  background: var(--primary);
-  color: #ffffff;
-  box-shadow: inset 0 0 0 2px var(--primary-strong);
 }
 
 .resultPane {
@@ -312,9 +323,9 @@ p {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 4px 12px;
-  border: 1px solid var(--primary);
+  border: 1px solid var(--line);
   border-radius: 8px;
-  background: var(--primary-soft);
+  background: #fafafa;
   padding: 12px;
   margin-bottom: 12px;
 }
@@ -368,8 +379,8 @@ p {
 }
 
 .resultItem:hover {
-  border-color: var(--primary);
-  background: var(--primary-soft);
+  border-color: #a3a3a3;
+  background: #fafafa;
 }
 
 .resultShelf {
