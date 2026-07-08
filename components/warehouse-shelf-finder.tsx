@@ -2,6 +2,7 @@
 
 import {
   AlertTriangle,
+  ShoppingCart,
   Check,
   Plus,
   RotateCcw,
@@ -31,6 +32,15 @@ type RepickRequest = {
   updatedAt: string;
 };
 
+type RepickCartItem = {
+  id: string;
+  itemNumber: string;
+  productName: string;
+  modelNumber: string;
+  shelfNumber: string;
+  quantity: number;
+};
+
 const repickStorageKey = "tana-ban-repick-requests";
 const legacyReplenishmentStorageKey = "tana-ban-replenishment-requests";
 
@@ -50,9 +60,11 @@ export function WarehouseShelfFinder() {
   const [searchInput, setSearchInput] = useState(query);
   const [hasSearched, setHasSearched] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isCartConfirmOpen, setIsCartConfirmOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>("search");
   const [requestQuantities, setRequestQuantities] = useState<Record<string, number>>({});
   const [requests, setRequests] = useState<RepickRequest[]>([]);
+  const [cartItems, setCartItems] = useState<RepickCartItem[]>([]);
   const productInputRef = useRef<HTMLInputElement>(null);
 
   const filteredProducts = useMemo(
@@ -143,43 +155,100 @@ export function WarehouseShelfFinder() {
 
   const handleAddRequest = (product: ProductRecord) => {
     const quantity = requestQuantities[product.id] ?? 1;
-    const now = new Date().toISOString();
 
-    setRequests((current) => {
+    setCartItems((current) => {
       const existingIndex = current.findIndex(
-        (request) =>
-          request.status === "pending" &&
-          request.itemNumber === product.itemNumber &&
-          request.shelfNumber === product.shelfNumber
+        (item) => item.itemNumber === product.itemNumber && item.shelfNumber === product.shelfNumber
       );
 
       if (existingIndex >= 0) {
-        return current.map((request, index) =>
+        return current.map((item, index) =>
           index === existingIndex
             ? {
-                ...request,
-                quantity: request.quantity + quantity,
-                updatedAt: now
+                ...item,
+                quantity: item.quantity + quantity
               }
-            : request
+            : item
         );
       }
 
       return [
+        ...current,
         {
-          id: `${product.id}-${now}`,
+          id: `${product.id}-${Date.now()}`,
           itemNumber: product.itemNumber,
           productName: product.productName,
           modelNumber: product.modelNumber,
           shelfNumber: product.shelfNumber,
-          quantity,
+          quantity
+        }
+      ];
+    });
+  };
+
+  const handleRemoveCartItem = (cartItemId: string) => {
+    setCartItems((current) => current.filter((item) => item.id !== cartItemId));
+  };
+
+  const handleCartQuantityChange = (cartItemId: string, value: string) => {
+    const nextQuantity = Number.parseInt(value, 10);
+
+    setCartItems((current) =>
+      current.map((item) =>
+        item.id === cartItemId
+          ? {
+              ...item,
+              quantity: Number.isFinite(nextQuantity) && nextQuantity > 0 ? nextQuantity : 1
+            }
+          : item
+      )
+    );
+  };
+
+  const handleConfirmCart = () => {
+    if (cartItems.length === 0) {
+      return;
+    }
+
+    const now = new Date().toISOString();
+    setRequests((current) => {
+      const nextRequests = [...current];
+
+      cartItems.forEach((item) => {
+        const existingIndex = nextRequests.findIndex(
+          (request) =>
+            request.status === "pending" &&
+            request.itemNumber === item.itemNumber &&
+            request.shelfNumber === item.shelfNumber
+        );
+
+        if (existingIndex >= 0) {
+          nextRequests[existingIndex] = {
+            ...nextRequests[existingIndex],
+            quantity: nextRequests[existingIndex].quantity + item.quantity,
+            updatedAt: now
+          };
+          return;
+        }
+
+        nextRequests.unshift({
+          id: `${item.id}-${now}`,
+          itemNumber: item.itemNumber,
+          productName: item.productName,
+          modelNumber: item.modelNumber,
+          shelfNumber: item.shelfNumber,
+          quantity: item.quantity,
           status: "pending",
           createdAt: now,
           updatedAt: now
-        },
-        ...current
-      ];
+        });
+      });
+
+      return nextRequests;
     });
+
+    setCartItems([]);
+    setIsCartConfirmOpen(false);
     setActiveTab("pending");
   };
 
@@ -297,6 +366,22 @@ export function WarehouseShelfFinder() {
 
       {activeTab === "search" ? (
         <>
+          <section className="cartSummary" aria-label="再ピック依頼カート">
+            <div>
+              <h2>再ピック依頼カート</h2>
+              <p>{cartItems.length} 商品</p>
+            </div>
+            <button
+              className="requestButton"
+              type="button"
+              onClick={() => setIsCartConfirmOpen(true)}
+              disabled={cartItems.length === 0}
+            >
+              <ShoppingCart size={16} aria-hidden="true" />
+              確認して発注
+            </button>
+          </section>
+
           <section className="searchPanel focusedSearchPanel" aria-label="商品検索">
             <form
               className="searchBox"
@@ -347,13 +432,13 @@ export function WarehouseShelfFinder() {
                 ) : filteredProducts.length > 0 ? (
                   filteredProducts.map((product) => (
                     <div key={product.id} className="resultItem">
-                      <span className="resultShelf">{product.shelfNumber}</span>
                       <span className="resultText">
                         <strong>{product.productName || "商品名未設定"}</strong>
                         <small>単品番号: {product.itemNumber || "未設定"}</small>
                         <small>{product.modelNumber || "型番未設定"}</small>
                         <small>{formatShelfDescription(product.shelfNumber)}</small>
                       </span>
+                      <span className="resultShelf">{product.shelfNumber}</span>
                       <div className="resultActions">
                         <label>
                           数量
@@ -371,8 +456,8 @@ export function WarehouseShelfFinder() {
                           type="button"
                           onClick={() => handleAddRequest(product)}
                         >
-                          <Plus size={16} aria-hidden="true" />
-                          再ピック依頼
+                          <ShoppingCart size={16} aria-hidden="true" />
+                          カートに追加
                         </button>
                       </div>
                     </div>
@@ -396,6 +481,74 @@ export function WarehouseShelfFinder() {
             title="再ピック依頼"
           />
         </section>
+      ) : null}
+
+      {isCartConfirmOpen ? (
+        <div className="modalBackdrop" role="presentation">
+          <section className="confirmDialog" aria-label="再ピック依頼確認" role="dialog">
+            <div className="paneHeader">
+              <div>
+                <h2>発注前確認</h2>
+                <p>内容を確認してから発注してください。</p>
+              </div>
+            </div>
+
+            {cartItems.length > 0 ? (
+              <div className="cartList">
+                {cartItems.map((item) => (
+                  <div className="cartItem" key={item.id}>
+                    <div className="cartItemBody">
+                      <strong>{item.productName || "商品名未設定"}</strong>
+                      <small>単品番号: {item.itemNumber || "未設定"}</small>
+                      <small>
+                        棚: {item.shelfNumber} / {formatShelfDescription(item.shelfNumber)}
+                      </small>
+                    </div>
+                    <label>
+                      数量
+                      <input
+                        min={1}
+                        type="number"
+                        value={item.quantity}
+                        onChange={(event) => handleCartQuantityChange(item.id, event.target.value)}
+                      />
+                    </label>
+                    <button
+                      className="deleteButton"
+                      type="button"
+                      onClick={() => handleRemoveCartItem(item.id)}
+                      title="カートから削除"
+                      aria-label="カートから削除"
+                    >
+                      <Trash2 size={16} aria-hidden="true" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="compactEmptyState">カートに商品がありません。</div>
+            )}
+
+            <div className="confirmActions">
+              <button
+                className="secondaryButton"
+                type="button"
+                onClick={() => setIsCartConfirmOpen(false)}
+              >
+                戻る
+              </button>
+              <button
+                className="requestButton"
+                type="button"
+                onClick={handleConfirmCart}
+                disabled={cartItems.length === 0}
+              >
+                <Plus size={16} aria-hidden="true" />
+                発注
+              </button>
+            </div>
+          </section>
+        </div>
       ) : null}
 
       {activeTab === "completed" ? (
