@@ -1,20 +1,19 @@
-# Warehouse Shelf Finder
+# Tana-Ban
 
-商品名・型番・棚番号から倉庫内の棚位置を検索し、倉庫マップ上で該当棚をハイライトするNext.jsアプリです。
+商品マスタExcelを取り込み、商品検索と再ピック依頼を現場で共有するNext.jsアプリです。
 
 ## 目的
 
-約300種類の商品を保管する倉庫で、棚入れ作業時に商品名・型番・キーワードを入力すると、該当商品の棚番号を検索し、倉庫マップ上の棚を色付きで表示します。
+約300種類の商品を保管する倉庫で、商品名・単品番号・型番・棚番号から棚位置を検索します。包装場から商品倉庫へ再ピック依頼を出し、未対応・対応済みを複数端末で共有できます。
 
 ## 現在の機能
 
-- サンプル倉庫マップの表示
-- サンプル商品データの検索
-- 商品名・型番・棚番号・キーワードによる部分一致検索
-- 検索結果に該当する棚のハイライト
-- 商品リストクリックによる棚の選択表示
-- 倉庫マップExcelの読み込み
-- 商品データExcelの読み込み
+- 共通パスワードによるログイン
+- 商品マスタExcelのオンライン保存
+- 単品番号・商品名・型番・棚番号による部分一致検索
+- 包装場区分つきの再ピック依頼カート
+- 再ピック依頼の未対応・対応済み管理
+- Supabase上での商品マスタ・再ピック依頼共有
 
 ## 技術スタック
 
@@ -24,6 +23,7 @@
 - Zustand
 - xlsx
 - lucide-react
+- Supabase REST API
 
 ## ローカル起動
 
@@ -38,32 +38,41 @@ npm run dev
 http://localhost:3000
 ```
 
+ローカルでオンライン保存まで動かす場合は、`.env.example` を参考に `.env.local` を作成してください。
+
+```text
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+APP_SHARED_PASSWORD=現場共通パスワード
+ADMIN_UPLOAD_PASSWORD=アップロード用パスワード
+```
+
 ## 商品Excelの形式
 
 1行目に見出しを入れてください。現在対応している主な列名は以下です。
 
 | 項目 | 対応列名 |
 | --- | --- |
-| 商品名 | 商品名、品名、productName、product_name、name |
-| 型番 | 型番、方番号、品番、modelNumber、model_number、sku |
+| 単品番号 | 単品番号、単品No、単品NO、itemNumber、item_number |
+| 商品区分 | 商品区分、作業場2、category、productCategory、product_category |
+| 商品名 | 商品名、商品名2、品名、品名1、productName、product_name、name |
+| 型番 | 型番、方番号、品番、品名2、modelNumber、model_number、sku |
 | 棚番号 | 棚番号、棚番、棚、shelfNumber、shelf_number、location |
+| 分割棚番号 | 棚番号1、棚番号2、棚番号3 |
 | キーワード | キーワード、検索語、keywords、keyword、備考 |
 
 最低限、棚番号は必須です。商品名または型番が入っていると検索結果が見やすくなります。
 
-## 倉庫マップExcelの形式
+## Supabase設定
 
-Excelシート上で、棚の位置に棚番号を入力してください。
+SupabaseのSQL Editorで `supabase/schema.sql` を実行してください。
 
-例:
+作成されるテーブル:
 
-| 入口 |  | A-01 | A-02 | A-03 |
-| --- | --- | --- | --- | --- |
-|  |  | A-04 | A-05 | A-06 |
-| 通路 | 通路 | 通路 | 通路 | 通路 |
-|  |  | B-01 | B-02 | B-03 |
+- `products`
+- `repick_requests`
 
-セルに入っている文字が棚番号として扱われます。通路や入口なども表示されますが、商品データの棚番号と一致したセルだけがハイライト対象になります。
+アプリはサーバー側API Routeから `SUPABASE_SERVICE_ROLE_KEY` を使ってアクセスします。ブラウザにはSupabaseキーを出しません。
 
 ## GitHubに載せる手順
 
@@ -89,7 +98,14 @@ git push -u origin main
 4. Framework Preset が `Next.js` になっていることを確認します。
 5. Deploy を押します。
 
-現時点では環境変数は不要です。
+Environment Variables に以下を設定してください。
+
+| Name | Value |
+| --- | --- |
+| `SUPABASE_URL` | Supabase Project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service_role key |
+| `APP_SHARED_PASSWORD` | 現場20人が使う共通パスワード |
+| `ADMIN_UPLOAD_PASSWORD` | 商品マスタExcelアップロード用パスワード |
 
 ## StackBlitzで見る手順
 
@@ -102,8 +118,7 @@ https://stackblitz.com/github/YOUR_ACCOUNT/YOUR_REPOSITORY
 ## 今後の拡張候補
 
 - 実Excelの棚番号表記ゆれ対応
-- Supabaseへの商品マスタ保存
 - 複数倉庫・複数フロア対応
 - 棚ごとの在庫数表示
 - バーコードまたはQRコード検索
-- スマホ向けの棚入れ専用モード
+- 操作履歴と担当者名の記録

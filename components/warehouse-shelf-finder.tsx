@@ -11,7 +11,7 @@ import {
   Trash2,
   Upload
 } from "lucide-react";
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, useMemo, useRef, useState } from "react";
 import { importProductsFromExcel } from "@/lib/excel-import";
 import type { ProductRecord } from "@/lib/warehouse-types";
 import { selectFilteredProducts, useWarehouseStore } from "@/stores/warehouse-store";
@@ -45,9 +45,37 @@ type RepickCartItem = {
   quantity: number;
 };
 
+type ProductsApiResponse =
+  | {
+      ok: true;
+      sourceName: string;
+      products: ProductRecord[];
+    }
+  | {
+      ok: false;
+      errorMessage: string;
+    };
+
+type RepickRequestsApiResponse =
+  | {
+      ok: true;
+      requests: RepickRequest[];
+    }
+  | {
+      ok: false;
+      errorMessage: string;
+    };
+
+type BasicApiResponse =
+  | {
+      ok: true;
+    }
+  | {
+      ok: false;
+      errorMessage: string;
+    };
+
 const packagingCategoryOptions: PackagingCategory[] = ["一般", "簡易", "完全", "抱き合せ"];
-const repickStorageKey = "tana-ban-repick-requests";
-const legacyReplenishmentStorageKey = "tana-ban-replenishment-requests";
 
 export function WarehouseShelfFinder() {
   const {
@@ -59,9 +87,12 @@ export function WarehouseShelfFinder() {
     setSelectedShelfNumber,
     setProducts,
     setErrorMessage,
-    hydrateStoredProducts,
     resetSampleData
   } = useWarehouseStore();
+  const [appPassword, setAppPassword] = useState("");
+  const [verifiedPassword, setVerifiedPassword] = useState("");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoadingOnlineData, setIsLoadingOnlineData] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [searchInput, setSearchInput] = useState(query);
   const [hasSearched, setHasSearched] = useState(false);
@@ -75,6 +106,7 @@ export function WarehouseShelfFinder() {
   const [selectedPackagingCategory, setSelectedPackagingCategory] =
     useState<PackagingCategory>("一般");
   const productInputRef = useRef<HTMLInputElement>(null);
+  const uploadPasswordRef = useRef("");
 
   const filteredProducts = useMemo(
     () => (hasSearched && query.trim().length > 0 ? selectFilteredProducts(products, query) : []),
@@ -89,34 +121,61 @@ export function WarehouseShelfFinder() {
     [requests]
   );
 
-  useEffect(() => {
-    hydrateStoredProducts();
-  }, [hydrateStoredProducts]);
+  const loadOnlineData = async (password: string) => {
+    setIsLoadingOnlineData(true);
+    setErrorMessage(null);
 
-  useEffect(() => {
-    const rawRequests =
-      window.localStorage.getItem(repickStorageKey) ??
-      window.localStorage.getItem(legacyReplenishmentStorageKey);
+    try {
+      const [productsResponse, requestsResponse] = await Promise.all([
+        apiRequest<ProductsApiResponse>("/api/products", password),
+        apiRequest<RepickRequestsApiResponse>("/api/repick-requests", password)
+      ]);
 
-    if (!rawRequests) {
+      if (productsResponse.ok) {
+        setProducts(productsResponse.products, productsResponse.sourceName);
+      } else {
+        setErrorMessage(productsResponse.errorMessage);
+      }
+
+      if (requestsResponse.ok) {
+        setRequests(requestsResponse.requests.map(toRepickRequest));
+      } else {
+        setErrorMessage(requestsResponse.errorMessage);
+      }
+    } catch (error) {
+      setErrorMessage(getClientErrorMessage(error));
+    } finally {
+      setIsLoadingOnlineData(false);
+    }
+  };
+
+  const handleLogin = async () => {
+    const password = appPassword.trim();
+
+    if (!password) {
+      setErrorMessage("共通パスワードを入力してください。");
       return;
     }
 
+    setErrorMessage(null);
+
     try {
-      const parsedRequests = JSON.parse(rawRequests);
+      const response = await apiRequest<BasicApiResponse>("/api/auth", password, {
+        method: "POST"
+      });
 
-      if (Array.isArray(parsedRequests)) {
-        setRequests(parsedRequests.map(toRepickRequest));
+      if (!response.ok) {
+        setErrorMessage(response.errorMessage);
+        return;
       }
-    } catch {
-      window.localStorage.removeItem(repickStorageKey);
-      window.localStorage.removeItem(legacyReplenishmentStorageKey);
-    }
-  }, []);
 
-  useEffect(() => {
-    window.localStorage.setItem(repickStorageKey, JSON.stringify(requests));
-  }, [requests]);
+      setVerifiedPassword(password);
+      setIsAuthenticated(true);
+      await loadOnlineData(password);
+    } catch (error) {
+      setErrorMessage(getClientErrorMessage(error));
+    }
+  };
 
   const handleProductImport = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -130,7 +189,23 @@ export function WarehouseShelfFinder() {
     setIsImporting(false);
 
     if (result.ok) {
-      setProducts(result.value, result.sourceName);
+      const response = await apiRequest<ProductsApiResponse>("/api/products", verifiedPassword, {
+        method: "POST",
+        uploadPassword: uploadPasswordRef.current,
+        body: {
+          sourceName: result.sourceName,
+          products: result.value
+        }
+      });
+
+      if (!response.ok) {
+        setErrorMessage(response.errorMessage);
+        event.target.value = "";
+        uploadPasswordRef.current = "";
+        return;
+      }
+
+      setProducts(response.products, response.sourceName);
       setQuery("");
       setSearchInput("");
       setHasSearched(false);
@@ -140,6 +215,7 @@ export function WarehouseShelfFinder() {
     }
 
     event.target.value = "";
+    uploadPasswordRef.current = "";
   };
 
   const handleSearch = () => {
@@ -234,75 +310,121 @@ export function WarehouseShelfFinder() {
     );
   };
 
-  const handleConfirmCart = () => {
+  const handleConfirmCart = async () => {
     if (cartItems.length === 0) {
       return;
     }
 
     const now = new Date().toISOString();
-    setRequests((current) => {
-      const nextRequests = [...current];
-
-      cartItems.forEach((item) => {
-        const existingIndex = nextRequests.findIndex(
-          (request) =>
-            request.status === "pending" &&
-            request.itemNumber === item.itemNumber &&
-            request.shelfNumber === item.shelfNumber &&
-            request.packagingCategory === item.packagingCategory
-        );
-
-        if (existingIndex >= 0) {
-          nextRequests[existingIndex] = {
-            ...nextRequests[existingIndex],
-            quantity: nextRequests[existingIndex].quantity + item.quantity,
+    const response = await apiRequest<RepickRequestsApiResponse>(
+      "/api/repick-requests",
+      verifiedPassword,
+      {
+        method: "POST",
+        body: {
+          items: cartItems.map((item) => ({
+            ...item,
+            status: "pending",
+            createdAt: now,
             updatedAt: now
-          };
-          return;
+          }))
         }
+      }
+    );
 
-        nextRequests.unshift({
-          id: `${item.id}-${now}`,
-          itemNumber: item.itemNumber,
-          productCategory: item.productCategory,
-          productName: item.productName,
-          modelNumber: item.modelNumber,
-          shelfNumber: item.shelfNumber,
-          packagingCategory: item.packagingCategory,
-          quantity: item.quantity,
-          status: "pending",
-          createdAt: now,
-          updatedAt: now
-        });
-      });
+    if (!response.ok) {
+      setErrorMessage(response.errorMessage);
+      return;
+    }
 
-      return nextRequests;
-    });
-
+    setRequests(response.requests.map(toRepickRequest));
     setCartItems([]);
     setIsCartConfirmOpen(false);
     setActiveTab("pending");
   };
 
-  const handleStatusChange = (requestId: string, status: RequestStatus) => {
-    const now = new Date().toISOString();
-
-    setRequests((current) =>
-      current.map((request) =>
-        request.id === requestId
-          ? {
-              ...request,
-              status,
-              updatedAt: now
-            }
-          : request
-      )
+  const handleStatusChange = async (requestId: string, status: RequestStatus) => {
+    const response = await apiRequest<BasicApiResponse>(
+      `/api/repick-requests/${encodeURIComponent(requestId)}`,
+      verifiedPassword,
+      {
+        method: "PATCH",
+        body: { status }
+      }
     );
+
+    if (!response.ok) {
+      setErrorMessage(response.errorMessage);
+      return;
+    }
+
+    await loadOnlineData(verifiedPassword);
   };
 
-  const handleDeleteRequest = (requestId: string) => {
+  const handleDeleteRequest = async (requestId: string) => {
+    const response = await apiRequest<BasicApiResponse>(
+      `/api/repick-requests/${encodeURIComponent(requestId)}`,
+      verifiedPassword,
+      {
+        method: "DELETE"
+      }
+    );
+
+    if (!response.ok) {
+      setErrorMessage(response.errorMessage);
+      return;
+    }
+
     setRequests((current) => current.filter((request) => request.id !== requestId));
   };
+
+  const handleOpenProductFileDialog = () => {
+    const uploadPassword = window.prompt("アップロード用パスワードを入力してください。");
+
+    if (!uploadPassword) {
+      return;
+    }
+
+    uploadPasswordRef.current = uploadPassword;
+    productInputRef.current?.click();
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <main className="shell authShell">
+        <section className="authPanel" aria-label="ログイン">
+          <div>
+            <h1>商品検索</h1>
+            <p>共通パスワードを入力してください。</p>
+          </div>
+          <form
+            className="authForm"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleLogin();
+            }}
+          >
+            <input
+              type="password"
+              value={appPassword}
+              onChange={(event) => setAppPassword(event.target.value)}
+              placeholder="共通パスワード"
+              aria-label="共通パスワード"
+            />
+            <button className="requestButton" type="submit">
+              ログイン
+            </button>
+          </form>
+          {errorMessage ? (
+            <div className="errorBanner" role="alert">
+              <AlertTriangle size={18} aria-hidden="true" />
+              <span>{errorMessage}</span>
+            </div>
+          ) : null}
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="shell">
@@ -352,7 +474,7 @@ export function WarehouseShelfFinder() {
           <button
             className="secondaryButton"
             type="button"
-            onClick={() => productInputRef.current?.click()}
+            onClick={handleOpenProductFileDialog}
             disabled={isImporting}
             title="商品マスタExcelを取り込む"
           >
@@ -427,6 +549,7 @@ export function WarehouseShelfFinder() {
             <div className="dataStatus" aria-label="取り込み状況">
               <span>商品: {productSourceName}</span>
               <span>登録商品: {products.length} 件</span>
+              <span>{isLoadingOnlineData ? "同期中" : "オンライン同期"}</span>
             </div>
           </section>
 
@@ -680,6 +803,35 @@ function isPackagingCategory(value: unknown): value is PackagingCategory {
   return packagingCategoryOptions.some((option) => option === value);
 }
 
+async function apiRequest<T>(
+  path: string,
+  password: string,
+  options: {
+    method?: "GET" | "POST" | "PATCH" | "DELETE";
+    body?: unknown;
+    uploadPassword?: string;
+  } = {}
+): Promise<T> {
+  const response = await fetch(path, {
+    method: options.method ?? "GET",
+    headers: {
+      "Content-Type": "application/json",
+      "x-app-password": password,
+      ...(options.uploadPassword ? { "x-upload-password": options.uploadPassword } : {})
+    },
+    body: options.body === undefined ? undefined : JSON.stringify(options.body)
+  });
+  const data = (await response.json()) as T;
+
+  return data;
+}
+
+function getClientErrorMessage(error: unknown): string {
+  return error instanceof Error && error.message.length > 0
+    ? error.message
+    : "オンラインデータの通信中にエラーが発生しました。";
+}
+
 function RequestList({
   emptyMessage,
   onDelete,
@@ -688,8 +840,8 @@ function RequestList({
   title
 }: {
   emptyMessage: string;
-  onDelete: (requestId: string) => void;
-  onStatusChange: (requestId: string, status: RequestStatus) => void;
+  onDelete: (requestId: string) => void | Promise<void>;
+  onStatusChange: (requestId: string, status: RequestStatus) => void | Promise<void>;
   requests: RepickRequest[];
   title: string;
 }) {
@@ -716,7 +868,7 @@ function RequestList({
                   <button
                     className="statusButton"
                     type="button"
-                    onClick={() => onStatusChange(request.id, "completed")}
+                    onClick={() => void onStatusChange(request.id, "completed")}
                   >
                     <Check size={16} aria-hidden="true" />
                     対応済み
@@ -725,7 +877,7 @@ function RequestList({
                   <button
                     className="statusButton"
                     type="button"
-                    onClick={() => onStatusChange(request.id, "pending")}
+                    onClick={() => void onStatusChange(request.id, "pending")}
                   >
                     未対応へ戻す
                   </button>
@@ -733,7 +885,7 @@ function RequestList({
                 <button
                   className="deleteButton"
                   type="button"
-                  onClick={() => onDelete(request.id)}
+                  onClick={() => void onDelete(request.id)}
                   title="削除"
                   aria-label="削除"
                 >

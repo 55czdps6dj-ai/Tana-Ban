@@ -206,6 +206,37 @@ p {
   padding: 14px;
 }
 
+.authShell {
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+}
+
+.authPanel {
+  display: flex;
+  width: min(440px, 100%);
+  flex-direction: column;
+  gap: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 22px;
+  box-shadow: var(--shadow);
+}
+
+.authForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.authForm input {
+  height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 12px;
+}
+
 .tabBar {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
