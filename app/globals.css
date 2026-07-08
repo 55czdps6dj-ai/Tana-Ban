@@ -61,6 +61,7 @@ button:disabled {
 .toolbar,
 .searchPanel,
 .settingsPanel,
+.requestPanel,
 .resultPane {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -84,6 +85,7 @@ button:disabled {
 
 h1,
 h2,
+h3,
 p {
   margin: 0;
 }
@@ -95,6 +97,11 @@ h1 {
 
 h2 {
   font-size: 16px;
+  line-height: 1.3;
+}
+
+h3 {
+  font-size: 14px;
   line-height: 1.3;
 }
 
@@ -262,6 +269,13 @@ p {
   margin: 0 auto;
 }
 
+.requestPanel {
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 16px;
+}
+
 .resultPane {
   min-width: 0;
   padding: 16px;
@@ -292,7 +306,7 @@ p {
 
 .resultItem {
   display: grid;
-  grid-template-columns: 108px minmax(0, 1fr);
+  grid-template-columns: 108px minmax(0, 1fr) auto;
   align-items: center;
   gap: 14px;
   width: 100%;
@@ -342,6 +356,126 @@ p {
   color: var(--muted);
 }
 
+.resultActions {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.resultActions label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.resultActions input {
+  width: 72px;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 8px;
+}
+
+.requestButton,
+.statusButton,
+.deleteButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  border-radius: 6px;
+  font-weight: 700;
+}
+
+.requestButton,
+.statusButton {
+  gap: 6px;
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: #ffffff;
+  padding: 0 12px;
+}
+
+.deleteButton {
+  width: 38px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--danger);
+}
+
+.requestGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.requestGroup + .requestGroup {
+  margin-top: 18px;
+}
+
+.requestList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.requestItem {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.statusBadge.pending {
+  background: var(--accent-soft);
+  color: #7c4a03;
+}
+
+.statusBadge.completed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.requestBody {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.requestBody strong,
+.requestBody small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.requestBody small {
+  color: var(--muted);
+}
+
+.requestControls {
+  display: flex;
+  gap: 8px;
+}
+
 .emptyState {
   display: grid;
   min-height: 160px;
@@ -349,6 +483,13 @@ p {
   border: 1px dashed var(--line);
   border-radius: 8px;
   color: var(--muted);
+}
+
+.compactEmptyState {
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  padding: 14px;
 }
 
 @media (max-width: 920px) {
@@ -382,6 +523,21 @@ p {
   .dataStatus {
     white-space: normal;
   }
+
+  .resultItem,
+  .requestItem {
+    grid-template-columns: 1fr;
+  }
+
+  .resultActions,
+  .requestControls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .resultActions input {
+    width: 100%;
+  }
 }
 
 @media (max-width: 560px) {
@@ -395,7 +551,7 @@ p {
   }
 
   .resultItem {
-    grid-template-columns: 86px minmax(0, 1fr);
+    grid-template-columns: 1fr;
     min-height: 78px;
     gap: 10px;
     padding: 10px;
