@@ -3,9 +3,15 @@ import type { ImportResult, ProductRecord, WarehouseMap } from "@/lib/warehouse-
 
 type SheetRow = Record<string, unknown>;
 
-const productNameHeaders = ["商品名", "品名", "productName", "product_name", "name"];
-const modelNumberHeaders = ["型番", "方番号", "品番", "modelNumber", "model_number", "sku"];
+type ProductSheetCandidate = {
+  sheetName: string;
+  products: ProductRecord[];
+};
+
+const productNameHeaders = ["商品名", "商品名2", "品名", "品名1", "productName", "product_name", "name"];
+const modelNumberHeaders = ["型番", "方番号", "品番", "品名2", "modelNumber", "model_number", "sku"];
 const shelfNumberHeaders = ["棚番号", "棚番", "棚", "shelfNumber", "shelf_number", "location"];
+const splitShelfNumberHeaders = ["棚番号1", "棚番号2", "棚番号3"];
 const keywordHeaders = ["キーワード", "検索語", "keywords", "keyword", "備考"];
 
 export async function importWarehouseMapFromExcel(file: File): Promise<ImportResult<WarehouseMap>> {
@@ -75,9 +81,8 @@ export async function importWarehouseMapFromExcel(file: File): Promise<ImportRes
 export async function importProductsFromExcel(file: File): Promise<ImportResult<ProductRecord[]>> {
   try {
     const workbook = await readWorkbook(file);
-    const firstSheetName = workbook.SheetNames[0];
 
-    if (!firstSheetName) {
+    if (workbook.SheetNames.length === 0) {
       return {
         ok: false,
         sourceName: file.name,
@@ -85,35 +90,24 @@ export async function importProductsFromExcel(file: File): Promise<ImportResult<
       };
     }
 
-    const sheet = workbook.Sheets[firstSheetName];
-    const rows = XLSX.utils.sheet_to_json<SheetRow>(sheet, {
-      defval: ""
-    });
+    const candidates = workbook.SheetNames.map((sheetName) =>
+      toProductSheetCandidate(workbook, sheetName)
+    ).filter((candidate): candidate is ProductSheetCandidate => candidate !== null);
+    const bestCandidate = candidates.sort((a, b) => b.products.length - a.products.length)[0];
 
-    if (rows.length === 0) {
+    if (!bestCandidate || bestCandidate.products.length === 0) {
       return {
         ok: false,
         sourceName: file.name,
-        errorMessage: "商品データを読み取れませんでした。1行目に見出しを入れてください。"
-      };
-    }
-
-    const products = rows
-      .map((row, index) => toProductRecord(row, index))
-      .filter((product): product is ProductRecord => product !== null);
-
-    if (products.length === 0) {
-      return {
-        ok: false,
-        sourceName: file.name,
-        errorMessage: "商品名・型番・棚番号の列を確認してください。対応列名: 商品名、型番、棚番号。"
+        errorMessage:
+          "商品名・型番・棚番号の列を確認してください。対応列名: 商品名、品名1、型番、品名2、棚番号、棚番。"
       };
     }
 
     return {
       ok: true,
-      sourceName: file.name,
-      value: products
+      sourceName: `${file.name} / ${bestCandidate.sheetName}`,
+      value: bestCandidate.products
     };
   } catch (error) {
     return {
@@ -139,7 +133,7 @@ export function normalizeShelfNumber(value: string): string {
 function toProductRecord(row: SheetRow, index: number): ProductRecord | null {
   const productName = readStringValue(row, productNameHeaders);
   const modelNumber = readStringValue(row, modelNumberHeaders);
-  const shelfNumber = normalizeShelfNumber(readStringValue(row, shelfNumberHeaders));
+  const shelfNumber = normalizeShelfNumber(readShelfNumber(row));
   const rawKeywords = readStringValue(row, keywordHeaders);
 
   if (!productName && !modelNumber && !shelfNumber) {
@@ -162,6 +156,50 @@ function toProductRecord(row: SheetRow, index: number): ProductRecord | null {
     shelfNumber,
     keywords
   };
+}
+
+function toProductSheetCandidate(
+  workbook: XLSX.WorkBook,
+  sheetName: string
+): ProductSheetCandidate | null {
+  const sheet = workbook.Sheets[sheetName];
+
+  if (!sheet) {
+    return null;
+  }
+
+  const rows = XLSX.utils.sheet_to_json<SheetRow>(sheet, {
+    defval: ""
+  });
+
+  if (rows.length === 0) {
+    return null;
+  }
+
+  const products = rows
+    .map((row, index) => toProductRecord(row, index))
+    .filter((product): product is ProductRecord => product !== null);
+
+  return {
+    sheetName,
+    products
+  };
+}
+
+function readShelfNumber(row: SheetRow): string {
+  const directShelfNumber = readStringValue(row, shelfNumberHeaders);
+
+  if (directShelfNumber) {
+    return directShelfNumber;
+  }
+
+  const splitShelfParts = splitShelfNumberHeaders.map((header) => readStringValue(row, [header]));
+
+  if (splitShelfParts.every((part) => part.length > 0)) {
+    return splitShelfParts.join("-");
+  }
+
+  return "";
 }
 
 function readStringValue(row: SheetRow, candidates: string[]): string {
