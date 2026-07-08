@@ -594,6 +594,42 @@ p {
   gap: 4px;
 }
 
+.singleConfirmItem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.singleConfirmItem strong {
+  font-size: 20px;
+  line-height: 1.35;
+}
+
+.singleConfirmItem small {
+  color: var(--muted);
+}
+
+.singleConfirmItem label {
+  display: flex;
+  max-width: 120px;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.singleConfirmItem input {
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 8px;
+}
+
 .cartItemBody strong,
 .cartItemBody small {
   overflow: hidden;

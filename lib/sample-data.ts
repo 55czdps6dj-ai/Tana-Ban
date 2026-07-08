@@ -31,6 +31,7 @@ export const sampleProducts: ProductRecord[] = [
   {
     id: "sample-product-1",
     itemNumber: "101001",
+    productCategory: "A",
     productName: "高耐久ステンレスボルト M8",
     modelNumber: "BT-M8-SS",
     shelfNumber: "A-02",
@@ -39,6 +40,7 @@ export const sampleProducts: ProductRecord[] = [
   {
     id: "sample-product-2",
     itemNumber: "101002",
+    productCategory: "B",
     productName: "防水コネクタ 12ピン",
     modelNumber: "CN-WP12",
     shelfNumber: "B-05",
@@ -47,6 +49,7 @@ export const sampleProducts: ProductRecord[] = [
   {
     id: "sample-product-3",
     itemNumber: "101003",
+    productCategory: "C",
     productName: "制御盤用リレー 24V",
     modelNumber: "RY-24V-A",
     shelfNumber: "C-03",
@@ -55,6 +58,7 @@ export const sampleProducts: ProductRecord[] = [
   {
     id: "sample-product-4",
     itemNumber: "101004",
+    productCategory: "D",
     productName: "樹脂スペーサー 10mm",
     modelNumber: "SP-R10",
     shelfNumber: "D-04",

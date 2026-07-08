@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { importProductsFromExcel } from "@/lib/excel-import";
-import { formatShelfDescription } from "@/lib/shelf-label";
 import type { ProductRecord } from "@/lib/warehouse-types";
 import { selectFilteredProducts, useWarehouseStore } from "@/stores/warehouse-store";
 
@@ -23,6 +22,7 @@ type ActiveTab = "search" | "pending" | "completed";
 type RepickRequest = {
   id: string;
   itemNumber: string;
+  productCategory: string;
   productName: string;
   modelNumber: string;
   shelfNumber: string;
@@ -35,6 +35,7 @@ type RepickRequest = {
 type RepickCartItem = {
   id: string;
   itemNumber: string;
+  productCategory: string;
   productName: string;
   modelNumber: string;
   shelfNumber: string;
@@ -61,6 +62,7 @@ export function WarehouseShelfFinder() {
   const [hasSearched, setHasSearched] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCartConfirmOpen, setIsCartConfirmOpen] = useState(false);
+  const [productPendingCart, setProductPendingCart] = useState<ProductRecord | null>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>("search");
   const [requestQuantities, setRequestQuantities] = useState<Record<string, number>>({});
   const [requests, setRequests] = useState<RepickRequest[]>([]);
@@ -153,7 +155,16 @@ export function WarehouseShelfFinder() {
     }));
   };
 
-  const handleAddRequest = (product: ProductRecord) => {
+  const handleOpenAddToCartConfirm = (product: ProductRecord) => {
+    setProductPendingCart(product);
+  };
+
+  const handleConfirmAddToCart = () => {
+    if (!productPendingCart) {
+      return;
+    }
+
+    const product = productPendingCart;
     const quantity = requestQuantities[product.id] ?? 1;
 
     setCartItems((current) => {
@@ -177,6 +188,7 @@ export function WarehouseShelfFinder() {
         {
           id: `${product.id}-${Date.now()}`,
           itemNumber: product.itemNumber,
+          productCategory: product.productCategory,
           productName: product.productName,
           modelNumber: product.modelNumber,
           shelfNumber: product.shelfNumber,
@@ -184,6 +196,7 @@ export function WarehouseShelfFinder() {
         }
       ];
     });
+    setProductPendingCart(null);
   };
 
   const handleRemoveCartItem = (cartItemId: string) => {
@@ -234,6 +247,7 @@ export function WarehouseShelfFinder() {
         nextRequests.unshift({
           id: `${item.id}-${now}`,
           itemNumber: item.itemNumber,
+          productCategory: item.productCategory,
           productName: item.productName,
           modelNumber: item.modelNumber,
           shelfNumber: item.shelfNumber,
@@ -435,8 +449,9 @@ export function WarehouseShelfFinder() {
                       <span className="resultText">
                         <strong>{product.productName || "商品名未設定"}</strong>
                         <small>単品番号: {product.itemNumber || "未設定"}</small>
-                        <small>{product.modelNumber || "型番未設定"}</small>
-                        <small>{formatShelfDescription(product.shelfNumber)}</small>
+                        <small>商品区分: {product.productCategory || "未設定"}</small>
+                        <small>型番: {product.modelNumber || "未設定"}</small>
+                        <small>棚番号: {product.shelfNumber}</small>
                       </span>
                       <span className="resultShelf">{product.shelfNumber}</span>
                       <div className="resultActions">
@@ -454,7 +469,7 @@ export function WarehouseShelfFinder() {
                         <button
                           className="requestButton"
                           type="button"
-                          onClick={() => handleAddRequest(product)}
+                          onClick={() => handleOpenAddToCartConfirm(product)}
                         >
                           <ShoppingCart size={16} aria-hidden="true" />
                           カートに追加
@@ -469,6 +484,50 @@ export function WarehouseShelfFinder() {
             </aside>
           </section>
         </>
+      ) : null}
+
+      {productPendingCart ? (
+        <div className="modalBackdrop" role="presentation">
+          <section className="confirmDialog" aria-label="カート追加確認" role="dialog">
+            <div className="paneHeader">
+              <div>
+                <h2>カート追加確認</h2>
+                <p>この商品をカートに追加します。</p>
+              </div>
+            </div>
+            <div className="singleConfirmItem">
+              <strong>{productPendingCart.productName || "商品名未設定"}</strong>
+              <small>単品番号: {productPendingCart.itemNumber || "未設定"}</small>
+              <small>商品区分: {productPendingCart.productCategory || "未設定"}</small>
+              <small>型番: {productPendingCart.modelNumber || "未設定"}</small>
+              <small>棚番号: {productPendingCart.shelfNumber}</small>
+              <label>
+                数量
+                <input
+                  min={1}
+                  type="number"
+                  value={requestQuantities[productPendingCart.id] ?? 1}
+                  onChange={(event) =>
+                    handleQuantityChange(productPendingCart.id, event.target.value)
+                  }
+                />
+              </label>
+            </div>
+            <div className="confirmActions">
+              <button
+                className="secondaryButton"
+                type="button"
+                onClick={() => setProductPendingCart(null)}
+              >
+                戻る
+              </button>
+              <button className="requestButton" type="button" onClick={handleConfirmAddToCart}>
+                <ShoppingCart size={16} aria-hidden="true" />
+                カートに追加
+              </button>
+            </div>
+          </section>
+        </div>
       ) : null}
 
       {activeTab === "pending" ? (
@@ -500,9 +559,8 @@ export function WarehouseShelfFinder() {
                     <div className="cartItemBody">
                       <strong>{item.productName || "商品名未設定"}</strong>
                       <small>単品番号: {item.itemNumber || "未設定"}</small>
-                      <small>
-                        棚: {item.shelfNumber} / {formatShelfDescription(item.shelfNumber)}
-                      </small>
+                      <small>商品区分: {item.productCategory || "未設定"}</small>
+                      <small>棚番号: {item.shelfNumber}</small>
                     </div>
                     <label>
                       数量
@@ -592,9 +650,8 @@ function RequestList({
               <div className="requestBody">
                 <strong>{request.productName || "商品名未設定"}</strong>
                 <small>単品番号: {request.itemNumber || "未設定"}</small>
-                <small>
-                  棚: {request.shelfNumber} / {formatShelfDescription(request.shelfNumber)}
-                </small>
+                <small>商品区分: {request.productCategory || "未設定"}</small>
+                <small>棚番号: {request.shelfNumber}</small>
                 <small>数量: {request.quantity}</small>
               </div>
               <div className="requestControls">

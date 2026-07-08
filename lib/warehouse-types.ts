@@ -1,6 +1,7 @@
 export type ProductRecord = {
   id: string;
   itemNumber: string;
+  productCategory: string;
   productName: string;
   modelNumber: string;
   shelfNumber: string;

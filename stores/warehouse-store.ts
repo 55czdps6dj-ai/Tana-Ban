@@ -70,6 +70,7 @@ export function selectFilteredProducts(products: ProductRecord[], query: string)
       [
         product.productName,
         product.itemNumber,
+        product.productCategory,
         product.modelNumber,
         product.shelfNumber,
         product.keywords.join(" ")
