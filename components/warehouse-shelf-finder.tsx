@@ -15,6 +15,7 @@ import {
   importWarehouseMapFromExcel,
   normalizeShelfNumber
 } from "@/lib/excel-import";
+import { formatShelfDescription } from "@/lib/shelf-label";
 import type { ProductRecord, WarehouseCell } from "@/lib/warehouse-types";
 import {
   selectFilteredProducts,
@@ -288,6 +289,7 @@ export function WarehouseShelfFinder() {
                   <span className="resultText">
                     <strong>{product.productName || "商品名未設定"}</strong>
                     <small>{product.modelNumber || "型番未設定"}</small>
+                    <small>{formatShelfDescription(product.shelfNumber)}</small>
                   </span>
                 </button>
               ))
@@ -312,6 +314,7 @@ function ShelfDetail({
     <div className="shelfDetail">
       <span className="detailLabel">選択中の棚</span>
       <strong>{shelfNumber}</strong>
+      <span className="shelfDescription">{formatShelfDescription(shelfNumber)}</span>
       <span>{products.length} 商品</span>
     </div>
   );

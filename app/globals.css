@@ -331,6 +331,13 @@ p {
   font-weight: 700;
 }
 
+.shelfDescription {
+  grid-column: 1 / -1;
+  color: var(--primary-strong);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .detailLabel {
   grid-column: 1 / -1;
   color: var(--muted);
