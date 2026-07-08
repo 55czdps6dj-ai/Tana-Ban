@@ -13,7 +13,6 @@
   --accent-soft: #fff3cf;
   --danger: #b42318;
   --danger-soft: #fee4e2;
-  --keio-red: #c5002e;
   --keio-blue: #003b7a;
   --keio-blue-dark: #002b5c;
   --shadow: 0 20px 60px rgba(23, 33, 29, 0.08);
@@ -80,7 +79,7 @@ button:disabled {
   justify-content: space-between;
   gap: 16px;
   border-color: var(--keio-blue);
-  background: linear-gradient(90deg, var(--keio-red) 0 18%, var(--keio-blue) 18% 100%);
+  background: var(--keio-blue);
   color: #ffffff;
   padding: 16px;
 }
@@ -267,7 +266,7 @@ p {
   bottom: 12px;
   z-index: 20;
   border-color: var(--keio-blue);
-  background: linear-gradient(90deg, var(--keio-blue) 0 82%, var(--keio-red) 82% 100%);
+  background: var(--keio-blue);
   color: #ffffff;
   box-shadow: 0 18px 50px rgba(0, 43, 92, 0.26);
 }
