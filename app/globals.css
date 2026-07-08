@@ -184,6 +184,50 @@ p {
   padding: 14px;
 }
 
+.tabBar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.tabBar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.tabBar button.activeTab {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.tabBar span {
+  display: inline-flex;
+  min-width: 24px;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  font-size: 12px;
+}
+
+.tabBar button.activeTab span {
+  background: #ffffff;
+}
+
 .searchPanel {
   display: flex;
   align-items: center;
@@ -522,6 +566,10 @@ p {
 
   .dataStatus {
     white-space: normal;
+  }
+
+  .tabBar {
+    grid-template-columns: 1fr;
   }
 
   .resultItem,

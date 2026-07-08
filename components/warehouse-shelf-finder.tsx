@@ -17,8 +17,9 @@ import type { ProductRecord } from "@/lib/warehouse-types";
 import { selectFilteredProducts, useWarehouseStore } from "@/stores/warehouse-store";
 
 type RequestStatus = "pending" | "completed";
+type ActiveTab = "search" | "pending" | "completed";
 
-type ReplenishmentRequest = {
+type RepickRequest = {
   id: string;
   itemNumber: string;
   productName: string;
@@ -30,7 +31,8 @@ type ReplenishmentRequest = {
   updatedAt: string;
 };
 
-const replenishmentStorageKey = "tana-ban-replenishment-requests";
+const repickStorageKey = "tana-ban-repick-requests";
+const legacyReplenishmentStorageKey = "tana-ban-replenishment-requests";
 
 export function WarehouseShelfFinder() {
   const {
@@ -48,8 +50,9 @@ export function WarehouseShelfFinder() {
   const [searchInput, setSearchInput] = useState(query);
   const [hasSearched, setHasSearched] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<ActiveTab>("search");
   const [requestQuantities, setRequestQuantities] = useState<Record<string, number>>({});
-  const [requests, setRequests] = useState<ReplenishmentRequest[]>([]);
+  const [requests, setRequests] = useState<RepickRequest[]>([]);
   const productInputRef = useRef<HTMLInputElement>(null);
 
   const filteredProducts = useMemo(
@@ -66,7 +69,9 @@ export function WarehouseShelfFinder() {
   );
 
   useEffect(() => {
-    const rawRequests = window.localStorage.getItem(replenishmentStorageKey);
+    const rawRequests =
+      window.localStorage.getItem(repickStorageKey) ??
+      window.localStorage.getItem(legacyReplenishmentStorageKey);
 
     if (!rawRequests) {
       return;
@@ -79,12 +84,13 @@ export function WarehouseShelfFinder() {
         setRequests(parsedRequests);
       }
     } catch {
-      window.localStorage.removeItem(replenishmentStorageKey);
+      window.localStorage.removeItem(repickStorageKey);
+      window.localStorage.removeItem(legacyReplenishmentStorageKey);
     }
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem(replenishmentStorageKey, JSON.stringify(requests));
+    window.localStorage.setItem(repickStorageKey, JSON.stringify(requests));
   }, [requests]);
 
   const handleProductImport = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -117,6 +123,7 @@ export function WarehouseShelfFinder() {
     setQuery(trimmedQuery);
     setSelectedShelfNumber(null);
     setHasSearched(trimmedQuery.length > 0);
+    setActiveTab("search");
   };
 
   const handleResetSampleData = () => {
@@ -173,6 +180,7 @@ export function WarehouseShelfFinder() {
         ...current
       ];
     });
+    setActiveTab("pending");
   };
 
   const handleStatusChange = (requestId: string, status: RequestStatus) => {
@@ -254,39 +262,6 @@ export function WarehouseShelfFinder() {
         </section>
       ) : null}
 
-      <section className="searchPanel focusedSearchPanel" aria-label="商品検索">
-        <form
-          className="searchBox"
-          onSubmit={(event) => {
-            event.preventDefault();
-            handleSearch();
-          }}
-        >
-          <input
-            value={searchInput}
-            onChange={(event) => {
-              setSearchInput(event.target.value);
-              setHasSearched(false);
-              setSelectedShelfNumber(null);
-            }}
-            placeholder="単品番号・商品名・型番・棚番号を入力"
-            aria-label="単品番号、商品名、型番、棚番号で検索"
-          />
-          <button
-            className="searchButton"
-            type="submit"
-            title="検索する"
-            aria-label="検索する"
-          >
-            <Search size={20} aria-hidden="true" />
-          </button>
-        </form>
-        <div className="dataStatus" aria-label="取り込み状況">
-          <span>商品: {productSourceName}</span>
-          <span>登録商品: {products.length} 件</span>
-        </div>
-      </section>
-
       {errorMessage ? (
         <div className="errorBanner" role="alert">
           <AlertTriangle size={18} aria-hidden="true" />
@@ -294,84 +269,146 @@ export function WarehouseShelfFinder() {
         </div>
       ) : null}
 
-      <section className="workspace searchOnlyWorkspace">
-        <aside className="resultPane searchOnlyResultPane" aria-label="検索結果">
-          <div className="paneHeader">
-            <div>
-              <h2>検索結果</h2>
-              <p>{hasSearched ? `${filteredProducts.length} 件` : "検索ボタンを押すまで非表示"}</p>
+      <nav className="tabBar" aria-label="画面切り替え">
+        <button
+          className={activeTab === "search" ? "activeTab" : ""}
+          type="button"
+          onClick={() => setActiveTab("search")}
+        >
+          検索
+        </button>
+        <button
+          className={activeTab === "pending" ? "activeTab" : ""}
+          type="button"
+          onClick={() => setActiveTab("pending")}
+        >
+          再ピック依頼
+          <span>{pendingRequests.length}</span>
+        </button>
+        <button
+          className={activeTab === "completed" ? "activeTab" : ""}
+          type="button"
+          onClick={() => setActiveTab("completed")}
+        >
+          対応済み
+          <span>{completedRequests.length}</span>
+        </button>
+      </nav>
+
+      {activeTab === "search" ? (
+        <>
+          <section className="searchPanel focusedSearchPanel" aria-label="商品検索">
+            <form
+              className="searchBox"
+              onSubmit={(event) => {
+                event.preventDefault();
+                handleSearch();
+              }}
+            >
+              <input
+                value={searchInput}
+                onChange={(event) => {
+                  setSearchInput(event.target.value);
+                  setHasSearched(false);
+                  setSelectedShelfNumber(null);
+                }}
+                placeholder="単品番号・商品名・型番・棚番号を入力"
+                aria-label="単品番号、商品名、型番、棚番号で検索"
+              />
+              <button
+                className="searchButton"
+                type="submit"
+                title="検索する"
+                aria-label="検索する"
+              >
+                <Search size={20} aria-hidden="true" />
+              </button>
+            </form>
+            <div className="dataStatus" aria-label="取り込み状況">
+              <span>商品: {productSourceName}</span>
+              <span>登録商品: {products.length} 件</span>
             </div>
-          </div>
+          </section>
 
-          <div className="resultList">
-            {!hasSearched ? (
-              <div className="emptyState">キーワードを入力して虫眼鏡ボタンを押してください。</div>
-            ) : filteredProducts.length > 0 ? (
-              filteredProducts.map((product) => (
-                <div
-                  key={product.id}
-                  className="resultItem"
-                >
-                  <span className="resultShelf">{product.shelfNumber}</span>
-                  <span className="resultText">
-                    <strong>{product.productName || "商品名未設定"}</strong>
-                    <small>単品番号: {product.itemNumber || "未設定"}</small>
-                    <small>{product.modelNumber || "型番未設定"}</small>
-                    <small>{formatShelfDescription(product.shelfNumber)}</small>
-                  </span>
-                  <div className="resultActions">
-                    <label>
-                      数量
-                      <input
-                        min={1}
-                        type="number"
-                        value={requestQuantities[product.id] ?? 1}
-                        onChange={(event) => handleQuantityChange(product.id, event.target.value)}
-                      />
-                    </label>
-                    <button
-                      className="requestButton"
-                      type="button"
-                      onClick={() => handleAddRequest(product)}
-                    >
-                      <Plus size={16} aria-hidden="true" />
-                      補充依頼
-                    </button>
-                  </div>
+          <section className="workspace searchOnlyWorkspace">
+            <aside className="resultPane searchOnlyResultPane" aria-label="検索結果">
+              <div className="paneHeader">
+                <div>
+                  <h2>検索結果</h2>
+                  <p>
+                    {hasSearched ? `${filteredProducts.length} 件` : "検索ボタンを押すまで非表示"}
+                  </p>
                 </div>
-              ))
-            ) : (
-              <div className="emptyState">該当する商品がありません。</div>
-            )}
-          </div>
-        </aside>
-      </section>
+              </div>
 
-      <section className="requestPanel" aria-label="補充依頼リスト">
-        <div className="paneHeader">
-          <div>
-            <h2>補充依頼リスト</h2>
-            <p>
-              未対応 {pendingRequests.length} 件 / 対応済み {completedRequests.length} 件
-            </p>
-          </div>
-        </div>
+              <div className="resultList">
+                {!hasSearched ? (
+                  <div className="emptyState">キーワードを入力して虫眼鏡ボタンを押してください。</div>
+                ) : filteredProducts.length > 0 ? (
+                  filteredProducts.map((product) => (
+                    <div key={product.id} className="resultItem">
+                      <span className="resultShelf">{product.shelfNumber}</span>
+                      <span className="resultText">
+                        <strong>{product.productName || "商品名未設定"}</strong>
+                        <small>単品番号: {product.itemNumber || "未設定"}</small>
+                        <small>{product.modelNumber || "型番未設定"}</small>
+                        <small>{formatShelfDescription(product.shelfNumber)}</small>
+                      </span>
+                      <div className="resultActions">
+                        <label>
+                          数量
+                          <input
+                            min={1}
+                            type="number"
+                            value={requestQuantities[product.id] ?? 1}
+                            onChange={(event) =>
+                              handleQuantityChange(product.id, event.target.value)
+                            }
+                          />
+                        </label>
+                        <button
+                          className="requestButton"
+                          type="button"
+                          onClick={() => handleAddRequest(product)}
+                        >
+                          <Plus size={16} aria-hidden="true" />
+                          再ピック依頼
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="emptyState">該当する商品がありません。</div>
+                )}
+              </div>
+            </aside>
+          </section>
+        </>
+      ) : null}
 
-        <RequestList
-          emptyMessage="未対応の補充依頼はありません。"
-          onDelete={handleDeleteRequest}
-          onStatusChange={handleStatusChange}
-          requests={pendingRequests}
-          title="未対応"
-        />
-        <RequestList
-          emptyMessage="対応済みの補充依頼はありません。"
-          onDelete={handleDeleteRequest}
-          onStatusChange={handleStatusChange}
-          requests={completedRequests}
-          title="対応済み"
-        />
-      </section>
+      {activeTab === "pending" ? (
+        <section className="requestPanel" aria-label="再ピック依頼リスト">
+          <RequestList
+            emptyMessage="未対応の再ピック依頼はありません。"
+            onDelete={handleDeleteRequest}
+            onStatusChange={handleStatusChange}
+            requests={pendingRequests}
+            title="再ピック依頼"
+          />
+        </section>
+      ) : null}
+
+      {activeTab === "completed" ? (
+        <section className="requestPanel" aria-label="対応済みリスト">
+          <RequestList
+            emptyMessage="対応済みの再ピック依頼はありません。"
+            onDelete={handleDeleteRequest}
+            onStatusChange={handleStatusChange}
+            requests={completedRequests}
+            title="対応済み"
+          />
+        </section>
+      ) : null}
     </main>
   );
 }
@@ -386,7 +423,7 @@ function RequestList({
   emptyMessage: string;
   onDelete: (requestId: string) => void;
   onStatusChange: (requestId: string, status: RequestStatus) => void;
-  requests: ReplenishmentRequest[];
+  requests: RepickRequest[];
   title: string;
 }) {
   return (
