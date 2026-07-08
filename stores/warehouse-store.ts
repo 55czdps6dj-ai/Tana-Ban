@@ -18,8 +18,17 @@ type WarehouseState = {
   setWarehouseMap: (warehouseMap: WarehouseMap, sourceName: string) => void;
   setProducts: (products: ProductRecord[], sourceName: string) => void;
   setErrorMessage: (errorMessage: string | null) => void;
+  hydrateStoredProducts: () => void;
   resetSampleData: () => void;
 };
+
+type StoredProductData = {
+  version: 1;
+  sourceName: string;
+  products: ProductRecord[];
+};
+
+const productStorageKey = "tana-ban-product-master";
 
 export const useWarehouseStore = create<WarehouseState>((set) => ({
   query: "",
@@ -38,15 +47,32 @@ export const useWarehouseStore = create<WarehouseState>((set) => ({
       selectedShelfNumber: null,
       errorMessage: null
     }),
-  setProducts: (products, sourceName) =>
+  setProducts: (products, sourceName) => {
+    saveStoredProductData(products, sourceName);
     set({
       products,
       productSourceName: sourceName,
       selectedShelfNumber: null,
       errorMessage: null
-    }),
+    });
+  },
   setErrorMessage: (errorMessage) => set({ errorMessage }),
-  resetSampleData: () =>
+  hydrateStoredProducts: () => {
+    const storedProductData = loadStoredProductData();
+
+    if (storedProductData.productSourceName === "サンプル商品") {
+      return;
+    }
+
+    set({
+      products: storedProductData.products,
+      productSourceName: storedProductData.productSourceName,
+      selectedShelfNumber: null,
+      errorMessage: null
+    });
+  },
+  resetSampleData: () => {
+    clearStoredProductData();
     set({
       query: "",
       selectedShelfNumber: null,
@@ -55,8 +81,114 @@ export const useWarehouseStore = create<WarehouseState>((set) => ({
       mapSourceName: "サンプル地図",
       productSourceName: "サンプル商品",
       errorMessage: null
-    })
+    });
+  }
 }));
+
+function loadStoredProductData(): Pick<WarehouseState, "products" | "productSourceName"> {
+  if (typeof window === "undefined") {
+    return {
+      products: sampleProducts,
+      productSourceName: "サンプル商品"
+    };
+  }
+
+  try {
+    const rawData = window.localStorage.getItem(productStorageKey);
+
+    if (!rawData) {
+      return {
+        products: sampleProducts,
+        productSourceName: "サンプル商品"
+      };
+    }
+
+    const parsedData = JSON.parse(rawData) as Partial<StoredProductData>;
+
+    if (
+      parsedData.version !== 1 ||
+      typeof parsedData.sourceName !== "string" ||
+      !Array.isArray(parsedData.products)
+    ) {
+      window.localStorage.removeItem(productStorageKey);
+      return {
+        products: sampleProducts,
+        productSourceName: "サンプル商品"
+      };
+    }
+
+    const products = parsedData.products.filter(isProductRecord);
+
+    if (products.length === 0) {
+      window.localStorage.removeItem(productStorageKey);
+      return {
+        products: sampleProducts,
+        productSourceName: "サンプル商品"
+      };
+    }
+
+    return {
+      products,
+      productSourceName: parsedData.sourceName
+    };
+  } catch {
+    window.localStorage.removeItem(productStorageKey);
+    return {
+      products: sampleProducts,
+      productSourceName: "サンプル商品"
+    };
+  }
+}
+
+function saveStoredProductData(products: ProductRecord[], sourceName: string): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    const storedData: StoredProductData = {
+      version: 1,
+      sourceName,
+      products
+    };
+
+    window.localStorage.setItem(productStorageKey, JSON.stringify(storedData));
+  } catch {
+    setTimeout(() => {
+      useWarehouseStore.setState({
+        errorMessage:
+          "商品マスタをブラウザに保存できませんでした。端末の空き容量またはブラウザ設定を確認してください。"
+      });
+    }, 0);
+  }
+}
+
+function clearStoredProductData(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(productStorageKey);
+}
+
+function isProductRecord(value: unknown): value is ProductRecord {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const product = value as Partial<ProductRecord>;
+
+  return (
+    typeof product.id === "string" &&
+    typeof product.itemNumber === "string" &&
+    typeof product.productCategory === "string" &&
+    typeof product.productName === "string" &&
+    typeof product.modelNumber === "string" &&
+    typeof product.shelfNumber === "string" &&
+    Array.isArray(product.keywords) &&
+    product.keywords.every((keyword) => typeof keyword === "string")
+  );
+}
 
 export function selectFilteredProducts(products: ProductRecord[], query: string): ProductRecord[] {
   const normalizedQuery = normalizeSearchText(query);

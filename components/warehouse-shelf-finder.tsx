@@ -55,6 +55,7 @@ export function WarehouseShelfFinder() {
     setSelectedShelfNumber,
     setProducts,
     setErrorMessage,
+    hydrateStoredProducts,
     resetSampleData
   } = useWarehouseStore();
   const [isImporting, setIsImporting] = useState(false);
@@ -81,6 +82,10 @@ export function WarehouseShelfFinder() {
     () => requests.filter((request) => request.status === "completed"),
     [requests]
   );
+
+  useEffect(() => {
+    hydrateStoredProducts();
+  }, [hydrateStoredProducts]);
 
   useEffect(() => {
     const rawRequests =
@@ -379,22 +384,6 @@ export function WarehouseShelfFinder() {
 
       {activeTab === "search" ? (
         <>
-          <section className="cartSummary" aria-label="再ピック依頼カート">
-            <div>
-              <h2>再ピック依頼カート</h2>
-              <p>{cartItems.length} 商品</p>
-            </div>
-            <button
-              className="requestButton"
-              type="button"
-              onClick={() => setIsCartConfirmOpen(true)}
-              disabled={cartItems.length === 0}
-            >
-              <ShoppingCart size={16} aria-hidden="true" />
-              確認して発注
-            </button>
-          </section>
-
           <section className="searchPanel focusedSearchPanel" aria-label="商品検索">
             <form
               className="searchBox"
@@ -480,6 +469,22 @@ export function WarehouseShelfFinder() {
               </div>
             </aside>
           </section>
+
+          <footer className="cartSummary cartFooter" aria-label="再ピック依頼カート">
+            <div>
+              <h2>再ピック依頼カート</h2>
+              <p>{cartItems.length} 商品</p>
+            </div>
+            <button
+              className="requestButton"
+              type="button"
+              onClick={() => setIsCartConfirmOpen(true)}
+              disabled={cartItems.length === 0}
+            >
+              <ShoppingCart size={16} aria-hidden="true" />
+              確認して発注
+            </button>
+          </footer>
         </>
       ) : null}
 
