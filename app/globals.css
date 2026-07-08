@@ -362,7 +362,7 @@ p {
 
 .resultItem {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 108px auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 14px;
   width: 100%;
@@ -377,17 +377,6 @@ p {
 .resultItem:hover {
   border-color: #a3a3a3;
   background: #fafafa;
-}
-
-.resultShelf {
-  display: grid;
-  min-height: 48px;
-  place-items: center;
-  border-radius: 6px;
-  background: var(--primary-soft);
-  color: var(--primary-strong);
-  font-size: 16px;
-  font-weight: 800;
 }
 
 .resultText {
@@ -734,10 +723,5 @@ p {
     min-height: 78px;
     gap: 10px;
     padding: 10px;
-  }
-
-  .resultShelf {
-    min-height: 50px;
-    font-size: 15px;
   }
 }

@@ -291,8 +291,7 @@ export function WarehouseShelfFinder() {
       <section className="toolbar" aria-label="検索と取り込み">
         <div className="titleBlock">
           <div>
-            <h1>棚入れ検索</h1>
-            <p>商品名・型番・棚番号で検索し、棚位置をすばやく確認します。</p>
+            <h1>商品検索</h1>
           </div>
         </div>
 
@@ -450,10 +449,8 @@ export function WarehouseShelfFinder() {
                         <strong>{product.productName || "商品名未設定"}</strong>
                         <small>単品番号: {product.itemNumber || "未設定"}</small>
                         <small>商品区分: {product.productCategory || "未設定"}</small>
-                        <small>型番: {product.modelNumber || "未設定"}</small>
                         <small>棚番号: {product.shelfNumber}</small>
                       </span>
-                      <span className="resultShelf">{product.shelfNumber}</span>
                       <div className="resultActions">
                         <label>
                           数量
@@ -499,7 +496,6 @@ export function WarehouseShelfFinder() {
               <strong>{productPendingCart.productName || "商品名未設定"}</strong>
               <small>単品番号: {productPendingCart.itemNumber || "未設定"}</small>
               <small>商品区分: {productPendingCart.productCategory || "未設定"}</small>
-              <small>型番: {productPendingCart.modelNumber || "未設定"}</small>
               <small>棚番号: {productPendingCart.shelfNumber}</small>
               <label>
                 数量
