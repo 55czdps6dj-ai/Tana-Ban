@@ -18,6 +18,7 @@ import { selectFilteredProducts, useWarehouseStore } from "@/stores/warehouse-st
 
 type RequestStatus = "pending" | "completed";
 type ActiveTab = "search" | "pending" | "completed";
+type PackagingCategory = "一般" | "簡易" | "完全" | "抱き合せ";
 
 type RepickRequest = {
   id: string;
@@ -26,6 +27,7 @@ type RepickRequest = {
   productName: string;
   modelNumber: string;
   shelfNumber: string;
+  packagingCategory: PackagingCategory;
   quantity: number;
   status: RequestStatus;
   createdAt: string;
@@ -39,9 +41,11 @@ type RepickCartItem = {
   productName: string;
   modelNumber: string;
   shelfNumber: string;
+  packagingCategory: PackagingCategory;
   quantity: number;
 };
 
+const packagingCategoryOptions: PackagingCategory[] = ["一般", "簡易", "完全", "抱き合せ"];
 const repickStorageKey = "tana-ban-repick-requests";
 const legacyReplenishmentStorageKey = "tana-ban-replenishment-requests";
 
@@ -68,6 +72,8 @@ export function WarehouseShelfFinder() {
   const [requestQuantities, setRequestQuantities] = useState<Record<string, number>>({});
   const [requests, setRequests] = useState<RepickRequest[]>([]);
   const [cartItems, setCartItems] = useState<RepickCartItem[]>([]);
+  const [selectedPackagingCategory, setSelectedPackagingCategory] =
+    useState<PackagingCategory>("一般");
   const productInputRef = useRef<HTMLInputElement>(null);
 
   const filteredProducts = useMemo(
@@ -100,7 +106,7 @@ export function WarehouseShelfFinder() {
       const parsedRequests = JSON.parse(rawRequests);
 
       if (Array.isArray(parsedRequests)) {
-        setRequests(parsedRequests);
+        setRequests(parsedRequests.map(toRepickRequest));
       }
     } catch {
       window.localStorage.removeItem(repickStorageKey);
@@ -162,6 +168,7 @@ export function WarehouseShelfFinder() {
 
   const handleOpenAddToCartConfirm = (product: ProductRecord) => {
     setProductPendingCart(product);
+    setSelectedPackagingCategory("一般");
   };
 
   const handleConfirmAddToCart = () => {
@@ -174,7 +181,10 @@ export function WarehouseShelfFinder() {
 
     setCartItems((current) => {
       const existingIndex = current.findIndex(
-        (item) => item.itemNumber === product.itemNumber && item.shelfNumber === product.shelfNumber
+        (item) =>
+          item.itemNumber === product.itemNumber &&
+          item.shelfNumber === product.shelfNumber &&
+          item.packagingCategory === selectedPackagingCategory
       );
 
       if (existingIndex >= 0) {
@@ -197,6 +207,7 @@ export function WarehouseShelfFinder() {
           productName: product.productName,
           modelNumber: product.modelNumber,
           shelfNumber: product.shelfNumber,
+          packagingCategory: selectedPackagingCategory,
           quantity
         }
       ];
@@ -237,7 +248,8 @@ export function WarehouseShelfFinder() {
           (request) =>
             request.status === "pending" &&
             request.itemNumber === item.itemNumber &&
-            request.shelfNumber === item.shelfNumber
+            request.shelfNumber === item.shelfNumber &&
+            request.packagingCategory === item.packagingCategory
         );
 
         if (existingIndex >= 0) {
@@ -256,6 +268,7 @@ export function WarehouseShelfFinder() {
           productName: item.productName,
           modelNumber: item.modelNumber,
           shelfNumber: item.shelfNumber,
+          packagingCategory: item.packagingCategory,
           quantity: item.quantity,
           status: "pending",
           createdAt: now,
@@ -503,6 +516,21 @@ export function WarehouseShelfFinder() {
               <small>商品区分: {productPendingCart.productCategory || "未設定"}</small>
               <small>棚番号: {productPendingCart.shelfNumber}</small>
               <label>
+                包装場区分
+                <select
+                  value={selectedPackagingCategory}
+                  onChange={(event) =>
+                    setSelectedPackagingCategory(event.target.value as PackagingCategory)
+                  }
+                >
+                  {packagingCategoryOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
                 数量
                 <input
                   min={1}
@@ -562,6 +590,7 @@ export function WarehouseShelfFinder() {
                       <small>単品番号: {item.itemNumber || "未設定"}</small>
                       <small>商品区分: {item.productCategory || "未設定"}</small>
                       <small>棚番号: {item.shelfNumber}</small>
+                      <small>包装場区分: {item.packagingCategory}</small>
                     </div>
                     <label>
                       数量
@@ -625,6 +654,32 @@ export function WarehouseShelfFinder() {
   );
 }
 
+function toRepickRequest(value: unknown): RepickRequest {
+  const request = value && typeof value === "object" ? (value as Partial<RepickRequest>) : {};
+  const status: RequestStatus = request.status === "completed" ? "completed" : "pending";
+  const packagingCategory = isPackagingCategory(request.packagingCategory)
+    ? request.packagingCategory
+    : "一般";
+
+  return {
+    id: typeof request.id === "string" && request.id.length > 0 ? request.id : `request-${Date.now()}`,
+    itemNumber: typeof request.itemNumber === "string" ? request.itemNumber : "",
+    productCategory: typeof request.productCategory === "string" ? request.productCategory : "",
+    productName: typeof request.productName === "string" ? request.productName : "",
+    modelNumber: typeof request.modelNumber === "string" ? request.modelNumber : "",
+    shelfNumber: typeof request.shelfNumber === "string" ? request.shelfNumber : "",
+    packagingCategory,
+    quantity: typeof request.quantity === "number" && request.quantity > 0 ? request.quantity : 1,
+    status,
+    createdAt: typeof request.createdAt === "string" ? request.createdAt : new Date().toISOString(),
+    updatedAt: typeof request.updatedAt === "string" ? request.updatedAt : new Date().toISOString()
+  };
+}
+
+function isPackagingCategory(value: unknown): value is PackagingCategory {
+  return packagingCategoryOptions.some((option) => option === value);
+}
+
 function RequestList({
   emptyMessage,
   onDelete,
@@ -653,6 +708,7 @@ function RequestList({
                 <small>単品番号: {request.itemNumber || "未設定"}</small>
                 <small>商品区分: {request.productCategory || "未設定"}</small>
                 <small>棚番号: {request.shelfNumber}</small>
+                <small>包装場区分: {request.packagingCategory}</small>
                 <small>数量: {request.quantity}</small>
               </div>
               <div className="requestControls">
