@@ -705,10 +705,17 @@ p {
 
 @media (max-width: 920px) {
   .shell {
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .toolbar {
+    align-items: center;
+    flex-direction: row;
+    gap: 10px;
     padding: 12px;
   }
 
-  .toolbar,
   .searchPanel,
   .settingsPanel,
   .cartSummary {
@@ -717,7 +724,14 @@ p {
   }
 
   .actions {
-    justify-content: stretch;
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+  }
+
+  .iconButton {
+    min-height: 38px;
+    width: 38px;
   }
 
   .secondaryButton {
@@ -737,7 +751,27 @@ p {
   }
 
   .tabBar {
-    grid-template-columns: 1fr;
+    position: sticky;
+    top: 0;
+    z-index: 19;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    padding: 2px 0;
+    background: var(--bg);
+  }
+
+  .tabBar button {
+    min-height: 42px;
+    gap: 4px;
+    border-radius: 7px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .tabBar span {
+    min-width: 20px;
+    min-height: 20px;
+    font-size: 11px;
   }
 
   .resultItem,
@@ -760,7 +794,7 @@ p {
 
 @media (max-width: 560px) {
   h1 {
-    font-size: 21px;
+    font-size: 18px;
   }
 
   .searchBox input {

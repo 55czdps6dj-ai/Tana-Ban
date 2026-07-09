@@ -86,8 +86,7 @@ export function WarehouseShelfFinder() {
     setQuery,
     setSelectedShelfNumber,
     setProducts,
-    setErrorMessage,
-    resetSampleData
+    setErrorMessage
   } = useWarehouseStore();
   const [isLoadingOnlineData, setIsLoadingOnlineData] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -196,10 +195,8 @@ export function WarehouseShelfFinder() {
     setActiveTab("search");
   };
 
-  const handleResetSampleData = () => {
-    resetSampleData();
-    setSearchInput("");
-    setHasSearched(false);
+  const handleReloadOnlineData = async () => {
+    await loadOnlineData();
   };
 
   const handleQuantityChange = (productId: string, value: string) => {
@@ -365,9 +362,10 @@ export function WarehouseShelfFinder() {
           <button
             className="iconButton"
             type="button"
-            onClick={handleResetSampleData}
-            title="サンプルに戻す"
-            aria-label="サンプルに戻す"
+            onClick={() => void handleReloadOnlineData()}
+            disabled={isLoadingOnlineData}
+            title="リロード"
+            aria-label="リロード"
           >
             <RotateCcw size={18} aria-hidden="true" />
           </button>
