@@ -81,7 +81,6 @@ export function WarehouseShelfFinder() {
   const {
     query,
     products,
-    productSourceName,
     errorMessage,
     setQuery,
     setSelectedShelfNumber,
@@ -159,7 +158,7 @@ export function WarehouseShelfFinder() {
     const password = appPassword.trim();
 
     if (!password) {
-      setErrorMessage("共通パスワードを入力してください。");
+      setErrorMessage("パスワードを入力してください。");
       return;
     }
 
@@ -400,7 +399,7 @@ export function WarehouseShelfFinder() {
         <section className="authPanel" aria-label="ログイン">
           <div>
             <h1>商品検索</h1>
-            <p>共通パスワードを入力してください。</p>
+            <p>パスワードを入力してください。</p>
           </div>
           <form
             className="authForm"
@@ -413,8 +412,8 @@ export function WarehouseShelfFinder() {
               type="password"
               value={appPassword}
               onChange={(event) => setAppPassword(event.target.value)}
-              placeholder="共通パスワード"
-              aria-label="共通パスワード"
+              placeholder="パスワード"
+              aria-label="パスワード"
             />
             <button className="requestButton" type="submit">
               ログイン
@@ -559,11 +558,6 @@ export function WarehouseShelfFinder() {
                 <Search size={20} aria-hidden="true" />
               </button>
             </form>
-            <div className="dataStatus" aria-label="取り込み状況">
-              <span>商品: {productSourceName}</span>
-              <span>登録商品: {products.length} 件</span>
-              <span>{isLoadingOnlineData ? "同期中" : "オンライン同期"}</span>
-            </div>
           </section>
 
           <section className="workspace searchOnlyWorkspace">
@@ -571,15 +565,13 @@ export function WarehouseShelfFinder() {
               <div className="paneHeader">
                 <div>
                   <h2>検索結果</h2>
-                  <p>
-                    {hasSearched ? `${filteredProducts.length} 件` : "検索ボタンを押すまで非表示"}
-                  </p>
+                  {hasSearched ? <p>{filteredProducts.length} 件</p> : null}
                 </div>
               </div>
 
               <div className="resultList">
                 {!hasSearched ? (
-                  <div className="emptyState">キーワードを入力して虫眼鏡ボタンを押してください。</div>
+                  <div className="emptyState">キーワードを入力して検索ボタンを押してください。</div>
                 ) : filteredProducts.length > 0 ? (
                   filteredProducts.map((product) => (
                     <div key={product.id} className="resultItem">
