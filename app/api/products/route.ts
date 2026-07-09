@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { ProductRecord } from "@/lib/warehouse-types";
 import {
   getSupabaseConfig,
+  supabaseRequestAllPages,
   supabaseRequest,
   verifySharedPassword,
   verifyUploadPassword
@@ -41,7 +42,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const rows = await supabaseRequest<ProductRow[]>(
+    const rows = await supabaseRequestAllPages<ProductRow>(
       "products?select=*&order=product_name.asc.nullslast"
     );
     const sourceName = rows.find((row) => row.source_name)?.source_name ?? "オンライン商品マスタ";

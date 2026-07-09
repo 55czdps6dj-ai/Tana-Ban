@@ -6,6 +6,10 @@ type SupabaseRequestOptions = {
   prefer?: string;
 };
 
+type SupabasePagedRequestOptions = {
+  pageSize?: number;
+};
+
 export type SupabaseConfigStatus =
   | {
       configured: true;
@@ -114,4 +118,25 @@ export async function supabaseRequest<T>(
   }
 
   return (await response.json()) as T;
+}
+
+export async function supabaseRequestAllPages<T>(
+  path: string,
+  options: SupabasePagedRequestOptions = {}
+): Promise<T[]> {
+  const pageSize = options.pageSize ?? 1000;
+  const rows: T[] = [];
+
+  for (let offset = 0; ; offset += pageSize) {
+    const separator = path.includes("?") ? "&" : "?";
+    const page = await supabaseRequest<T[]>(
+      `${path}${separator}limit=${pageSize}&offset=${offset}`
+    );
+
+    rows.push(...page);
+
+    if (page.length < pageSize) {
+      return rows;
+    }
+  }
 }

@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { supabaseRequest, verifySharedPassword } from "@/lib/server/supabase-rest";
+import {
+  supabaseRequest,
+  supabaseRequestAllPages,
+  verifySharedPassword
+} from "@/lib/server/supabase-rest";
 
 type RequestStatus = "pending" | "completed";
 type PackagingCategory = "一般" | "簡易" | "完全" | "抱き合せ";
@@ -45,7 +49,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const rows = await supabaseRequest<RepickRequestRow[]>(
+    const rows = await supabaseRequestAllPages<RepickRequestRow>(
       "repick_requests?select=*&order=updated_at.desc"
     );
 
@@ -131,7 +135,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const rows = await supabaseRequest<RepickRequestRow[]>(
+    const rows = await supabaseRequestAllPages<RepickRequestRow>(
       "repick_requests?select=*&order=updated_at.desc"
     );
 

@@ -140,6 +140,10 @@ function toProductRecord(row: SheetRow, index: number): ProductRecord | null {
   const shelfNumber = normalizeShelfNumber(readShelfNumber(row));
   const rawKeywords = readStringValue(row, keywordHeaders);
 
+  if (isTerminatorRow(itemNumber, productName, modelNumber, shelfNumber)) {
+    return null;
+  }
+
   if (!productName && !modelNumber && !shelfNumber) {
     return null;
   }
@@ -162,6 +166,17 @@ function toProductRecord(row: SheetRow, index: number): ProductRecord | null {
     shelfNumber,
     keywords
   };
+}
+
+function isTerminatorRow(
+  itemNumber: string,
+  productName: string,
+  modelNumber: string,
+  shelfNumber: string
+): boolean {
+  return [itemNumber, productName, modelNumber, shelfNumber]
+    .filter((value) => value.length > 0)
+    .every((value) => normalizeSearchText(value) === "end" || normalizeSearchText(value) === "end-end-end");
 }
 
 function toProductSheetCandidate(
