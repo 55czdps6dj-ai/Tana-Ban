@@ -18,7 +18,7 @@ export type SupabaseConfigStatus =
     };
 
 export function getSupabaseConfig(): SupabaseConfigStatus {
-  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseUrl = normalizeSupabaseUrl(process.env.SUPABASE_URL);
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const missingKeys = [
     !supabaseUrl ? "SUPABASE_URL" : null,
@@ -37,6 +37,14 @@ export function getSupabaseConfig(): SupabaseConfigStatus {
     supabaseUrl: supabaseUrl as string,
     serviceRoleKey: serviceRoleKey as string
   };
+}
+
+export function normalizeSupabaseUrl(value: string | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  return value.trim().replace(/\/+$/, "").replace(/\/rest\/v1$/i, "");
 }
 
 export async function supabaseRequest<T>(
