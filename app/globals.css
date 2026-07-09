@@ -408,19 +408,10 @@ p {
   min-height: 0;
 }
 
-.searchTabBody {
-  display: flex;
-  min-height: 0;
-  flex: 1;
-  flex-direction: column;
-  gap: 16px;
-}
-
 .searchOnlyWorkspace {
   display: block;
   max-width: 960px;
   width: 100%;
-  min-height: 0;
   margin: 0 auto;
 }
 
@@ -448,10 +439,6 @@ p {
   display: flex;
   flex-direction: column;
   min-height: 480px;
-}
-
-.searchOnlyResultPane {
-  max-height: calc(100vh - 330px);
 }
 
 .resultList {
@@ -804,15 +791,7 @@ p {
   }
 
   .resultPane {
-    min-height: 0;
-  }
-
-  .searchTabBody {
-    gap: 10px;
-  }
-
-  .searchOnlyResultPane {
-    max-height: calc(100vh - 365px);
+    min-height: 360px;
   }
 
   .dataStatus {
@@ -891,9 +870,5 @@ p {
     min-height: 78px;
     gap: 10px;
     padding: 10px;
-  }
-
-  .searchOnlyResultPane {
-    max-height: calc(100vh - 350px);
   }
 }

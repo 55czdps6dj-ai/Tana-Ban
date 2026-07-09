@@ -531,7 +531,7 @@ export function WarehouseShelfFinder() {
       </nav>
 
       {activeTab === "search" ? (
-        <div className="searchTabBody">
+        <>
           <section className="searchPanel focusedSearchPanel" aria-label="商品検索">
             <form
               className="searchBox"
@@ -634,7 +634,7 @@ export function WarehouseShelfFinder() {
               確認して発注
             </button>
           </footer>
-        </div>
+        </>
       ) : null}
 
       {productPendingCart ? (
