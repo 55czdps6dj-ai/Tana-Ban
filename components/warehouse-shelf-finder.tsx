@@ -97,6 +97,7 @@ export function WarehouseShelfFinder() {
   const [hasSearched, setHasSearched] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCartConfirmOpen, setIsCartConfirmOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [productPendingCart, setProductPendingCart] = useState<ProductRecord | null>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>("search");
   const [requestQuantities, setRequestQuantities] = useState<Record<string, number>>({});
@@ -290,6 +291,7 @@ export function WarehouseShelfFinder() {
         }
       ];
     });
+    setSuccessMessage(null);
     setProductPendingCart(null);
   };
 
@@ -342,6 +344,7 @@ export function WarehouseShelfFinder() {
     setRequests(response.requests.map(toRepickRequest));
     setCartItems([]);
     setIsCartConfirmOpen(false);
+    setSuccessMessage("発注しました。");
     setActiveTab("pending");
   };
 
@@ -491,6 +494,13 @@ export function WarehouseShelfFinder() {
         <div className="errorBanner" role="alert">
           <AlertTriangle size={18} aria-hidden="true" />
           <span>{errorMessage}</span>
+        </div>
+      ) : null}
+
+      {successMessage ? (
+        <div className="successBanner" role="status">
+          <Check size={18} aria-hidden="true" />
+          <span>{successMessage}</span>
         </div>
       ) : null}
 

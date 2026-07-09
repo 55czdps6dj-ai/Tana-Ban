@@ -13,6 +13,8 @@
   --accent-soft: #fff3cf;
   --danger: #b42318;
   --danger-soft: #fee4e2;
+  --success: #166534;
+  --success-soft: #dcfce7;
   --keio-blue: #003b7a;
   --keio-blue-dark: #002b5c;
   --shadow: 0 20px 60px rgba(23, 33, 29, 0.08);
@@ -377,16 +379,26 @@ p {
   white-space: nowrap;
 }
 
-.errorBanner {
+.errorBanner,
+.successBanner {
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid #fecdca;
   border-radius: 8px;
-  background: var(--danger-soft);
-  color: var(--danger);
   padding: 12px 14px;
   font-weight: 700;
+}
+
+.errorBanner {
+  border: 1px solid #fecdca;
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.successBanner {
+  border: 1px solid #bbf7d0;
+  background: var(--success-soft);
+  color: var(--success);
 }
 
 .workspace {
@@ -631,7 +643,7 @@ p {
   width: min(720px, 100%);
   max-height: min(720px, calc(100vh - 40px));
   flex-direction: column;
-  overflow: auto;
+  overflow: hidden;
   border-radius: 8px;
   background: #ffffff;
   padding: 18px;
@@ -640,8 +652,12 @@ p {
 
 .cartList {
   display: flex;
+  min-height: 0;
+  max-height: min(460px, calc(100vh - 230px));
+  overflow: auto;
   flex-direction: column;
   gap: 8px;
+  padding-right: 4px;
 }
 
 .cartItem {
@@ -729,6 +745,7 @@ p {
 
 .confirmActions {
   display: flex;
+  flex: 0 0 auto;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 16px;
@@ -820,6 +837,21 @@ p {
 
   .resultActions input {
     width: 100%;
+  }
+
+  .modalBackdrop {
+    align-items: stretch;
+    padding: 10px;
+  }
+
+  .confirmDialog {
+    width: 100%;
+    max-height: calc(100vh - 20px);
+    padding: 14px;
+  }
+
+  .cartList {
+    max-height: calc(100vh - 250px);
   }
 }
 
