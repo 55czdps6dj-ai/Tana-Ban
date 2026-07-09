@@ -515,6 +515,70 @@ p {
   padding: 0 8px;
 }
 
+.quantityStepper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.quantityControls {
+  display: grid;
+  grid-template-columns: 38px 56px 38px;
+  overflow: hidden;
+  width: 132px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #ffffff;
+}
+
+.quantityControls button,
+.quantityControls input {
+  height: 38px;
+  border: 0;
+  background: #ffffff;
+  color: var(--text);
+}
+
+.quantityControls button {
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.quantityControls button:hover {
+  background: var(--primary-soft);
+}
+
+.quantityControls button:disabled {
+  color: #a3a3a3;
+  background: #f7f7f7;
+}
+
+.quantityControls input {
+  width: 56px;
+  border-right: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  padding: 0;
+  text-align: center;
+  font-weight: 800;
+  outline: 0;
+}
+
+.resultActions .quantityControls input,
+.cartItem .quantityControls input {
+  width: 56px;
+  height: 38px;
+  border-top: 0;
+  border-right: 1px solid var(--line);
+  border-bottom: 0;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  padding: 0;
+}
+
 .requestButton,
 .statusButton,
 .deleteButton {
@@ -662,7 +726,7 @@ p {
 
 .cartItem {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 92px 38px;
+  grid-template-columns: minmax(0, 1fr) 132px 38px;
   align-items: center;
   gap: 10px;
   border: 1px solid var(--line);
@@ -703,6 +767,10 @@ p {
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
+  margin-top: 6px;
+}
+
+.singleConfirmItem .quantityStepper {
   margin-top: 6px;
 }
 

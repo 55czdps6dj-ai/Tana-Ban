@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   ShoppingCart,
   Check,
+  Minus,
   Plus,
   RotateCcw,
   Search,
@@ -244,6 +245,13 @@ export function WarehouseShelfFinder() {
     }));
   };
 
+  const handleQuantityStep = (productId: string, nextQuantity: number) => {
+    setRequestQuantities((current) => ({
+      ...current,
+      [productId]: nextQuantity > 0 ? nextQuantity : 1
+    }));
+  };
+
   const handleOpenAddToCartConfirm = (product: ProductRecord) => {
     setProductPendingCart(product);
     setSelectedPackagingCategory("一般");
@@ -307,6 +315,19 @@ export function WarehouseShelfFinder() {
           ? {
               ...item,
               quantity: Number.isFinite(nextQuantity) && nextQuantity > 0 ? nextQuantity : 1
+            }
+          : item
+      )
+    );
+  };
+
+  const handleCartQuantityStep = (cartItemId: string, nextQuantity: number) => {
+    setCartItems((current) =>
+      current.map((item) =>
+        item.id === cartItemId
+          ? {
+              ...item,
+              quantity: nextQuantity > 0 ? nextQuantity : 1
             }
           : item
       )
@@ -583,17 +604,12 @@ export function WarehouseShelfFinder() {
                         <small>棚番号: {product.shelfNumber}</small>
                       </span>
                       <div className="resultActions">
-                        <label>
-                          数量
-                          <input
-                            min={1}
-                            type="number"
-                            value={requestQuantities[product.id] ?? 1}
-                            onChange={(event) =>
-                              handleQuantityChange(product.id, event.target.value)
-                            }
-                          />
-                        </label>
+                        <QuantityStepper
+                          label="数量"
+                          value={requestQuantities[product.id] ?? 1}
+                          onChange={(value) => handleQuantityStep(product.id, value)}
+                          onInputChange={(value) => handleQuantityChange(product.id, value)}
+                        />
                         <button
                           className="requestButton"
                           type="button"
@@ -660,17 +676,12 @@ export function WarehouseShelfFinder() {
                   ))}
                 </select>
               </label>
-              <label>
-                数量
-                <input
-                  min={1}
-                  type="number"
-                  value={requestQuantities[productPendingCart.id] ?? 1}
-                  onChange={(event) =>
-                    handleQuantityChange(productPendingCart.id, event.target.value)
-                  }
-                />
-              </label>
+              <QuantityStepper
+                label="数量"
+                value={requestQuantities[productPendingCart.id] ?? 1}
+                onChange={(value) => handleQuantityStep(productPendingCart.id, value)}
+                onInputChange={(value) => handleQuantityChange(productPendingCart.id, value)}
+              />
             </div>
             <div className="confirmActions">
               <button
@@ -723,15 +734,12 @@ export function WarehouseShelfFinder() {
                       <small>棚番号: {item.shelfNumber}</small>
                       <small>包装場区分: {item.packagingCategory}</small>
                     </div>
-                    <label>
-                      数量
-                      <input
-                        min={1}
-                        type="number"
-                        value={item.quantity}
-                        onChange={(event) => handleCartQuantityChange(item.id, event.target.value)}
-                      />
-                    </label>
+                    <QuantityStepper
+                      label="数量"
+                      value={item.quantity}
+                      onChange={(value) => handleCartQuantityStep(item.id, value)}
+                      onInputChange={(value) => handleCartQuantityChange(item.id, value)}
+                    />
                     <button
                       className="deleteButton"
                       type="button"
@@ -838,6 +846,52 @@ function getClientErrorMessage(error: unknown): string {
   return error instanceof Error && error.message.length > 0
     ? error.message
     : "オンラインデータの通信中にエラーが発生しました。";
+}
+
+function QuantityStepper({
+  label,
+  onChange,
+  onInputChange,
+  value
+}: {
+  label: string;
+  onChange: (value: number) => void;
+  onInputChange: (value: string) => void;
+  value: number;
+}) {
+  const normalizedValue = Number.isFinite(value) && value > 0 ? value : 1;
+
+  return (
+    <div className="quantityStepper" aria-label={label}>
+      <span>{label}</span>
+      <div className="quantityControls">
+        <button
+          type="button"
+          onClick={() => onChange(normalizedValue - 1)}
+          disabled={normalizedValue <= 1}
+          aria-label={`${label}を減らす`}
+        >
+          <Minus size={15} aria-hidden="true" />
+        </button>
+        <input
+          min={1}
+          inputMode="numeric"
+          pattern="[0-9]*"
+          type="number"
+          value={normalizedValue}
+          onChange={(event) => onInputChange(event.target.value)}
+          aria-label={label}
+        />
+        <button
+          type="button"
+          onClick={() => onChange(normalizedValue + 1)}
+          aria-label={`${label}を増やす`}
+        >
+          <Plus size={15} aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function RequestList({
