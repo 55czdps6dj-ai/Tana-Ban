@@ -586,6 +586,7 @@ export function WarehouseShelfFinder() {
                       <span className="resultText">
                         <strong>{product.productName || "商品名未設定"}</strong>
                         <small>単品番号: {product.itemNumber || "未設定"}</small>
+                        <small>型番: {product.modelNumber || "未設定"}</small>
                         <small>商品区分: {product.productCategory || "未設定"}</small>
                         <small>棚番号: {product.shelfNumber}</small>
                       </span>
@@ -649,6 +650,7 @@ export function WarehouseShelfFinder() {
             <div className="singleConfirmItem">
               <strong>{productPendingCart.productName || "商品名未設定"}</strong>
               <small>単品番号: {productPendingCart.itemNumber || "未設定"}</small>
+              <small>型番: {productPendingCart.modelNumber || "未設定"}</small>
               <small>商品区分: {productPendingCart.productCategory || "未設定"}</small>
               <small>棚番号: {productPendingCart.shelfNumber}</small>
               <label>
@@ -724,6 +726,7 @@ export function WarehouseShelfFinder() {
                     <div className="cartItemBody">
                       <strong>{item.productName || "商品名未設定"}</strong>
                       <small>単品番号: {item.itemNumber || "未設定"}</small>
+                      <small>型番: {item.modelNumber || "未設定"}</small>
                       <small>商品区分: {item.productCategory || "未設定"}</small>
                       <small>棚番号: {item.shelfNumber}</small>
                       <small>包装場区分: {item.packagingCategory}</small>
@@ -871,6 +874,7 @@ function RequestList({
               <div className="requestBody">
                 <strong>{request.productName || "商品名未設定"}</strong>
                 <small>単品番号: {request.itemNumber || "未設定"}</small>
+                <small>型番: {request.modelNumber || "未設定"}</small>
                 <small>商品区分: {request.productCategory || "未設定"}</small>
                 <small>棚番号: {request.shelfNumber}</small>
                 <small>包装場区分: {request.packagingCategory}</small>
