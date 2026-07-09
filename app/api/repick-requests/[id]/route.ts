@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseRequest } from "@/lib/server/supabase-rest";
+import { supabaseRequest, verifySharedPassword } from "@/lib/server/supabase-rest";
 
 type RequestStatus = "pending" | "completed";
 
@@ -11,6 +11,13 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
+  if (!verifySharedPassword(request)) {
+    return NextResponse.json(
+      { ok: false, errorMessage: "パスワードが違います。" },
+      { status: 401 }
+    );
+  }
+
   const { id } = await context.params;
   const body = (await request.json()) as RepickRequestPatchBody;
 
@@ -41,9 +48,16 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
+  if (!verifySharedPassword(request)) {
+    return NextResponse.json(
+      { ok: false, errorMessage: "パスワードが違います。" },
+      { status: 401 }
+    );
+  }
+
   const { id } = await context.params;
 
   try {

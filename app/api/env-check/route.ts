@@ -15,6 +15,8 @@ export async function GET() {
     supabaseUrlNormalized: Boolean(normalizedSupabaseUrl),
     supabaseUrlHadRestPath: Boolean(process.env.SUPABASE_URL?.match(/\/rest\/v1\/?$/i)),
     hasSupabaseServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+    hasAppSharedPassword: Boolean(process.env.APP_SHARED_PASSWORD),
+    hasAdminUploadPassword: Boolean(process.env.ADMIN_UPLOAD_PASSWORD),
     supabaseRelatedKeys
   });
 }

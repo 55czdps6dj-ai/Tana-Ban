@@ -47,6 +47,41 @@ export function normalizeSupabaseUrl(value: string | undefined): string | undefi
   return value.trim().replace(/\/+$/, "").replace(/\/rest\/v1$/i, "");
 }
 
+export function hasSharedPasswordConfig(): boolean {
+  return Boolean(getConfiguredSharedPassword());
+}
+
+export function verifySharedPassword(request: Request): boolean {
+  const configuredPassword = getConfiguredSharedPassword();
+  const providedPassword = normalizePassword(request.headers.get("x-app-password"));
+
+  return Boolean(configuredPassword && providedPassword && configuredPassword === providedPassword);
+}
+
+export function verifyUploadPassword(request: Request): boolean {
+  const uploadPassword = normalizePassword(
+    process.env.ADMIN_UPLOAD_PASSWORD ?? process.env.APP_SHARED_PASSWORD
+  );
+  const providedPassword = normalizePassword(request.headers.get("x-upload-password"));
+
+  return Boolean(uploadPassword && providedPassword && uploadPassword === providedPassword);
+}
+
+function getConfiguredSharedPassword(): string | null {
+  return normalizePassword(process.env.APP_SHARED_PASSWORD);
+}
+
+function normalizePassword(value: string | null | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const normalizedValue = value.normalize("NFKC").trim();
+  const unquotedValue = normalizedValue.replace(/^["'](.+)["']$/, "$1").trim();
+
+  return unquotedValue.length > 0 ? unquotedValue : null;
+}
+
 export async function supabaseRequest<T>(
   path: string,
   options: SupabaseRequestOptions = {}

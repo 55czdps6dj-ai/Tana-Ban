@@ -89,6 +89,9 @@ export function WarehouseShelfFinder() {
     setErrorMessage
   } = useWarehouseStore();
   const [isLoadingOnlineData, setIsLoadingOnlineData] = useState(false);
+  const [appPassword, setAppPassword] = useState("");
+  const [verifiedPassword, setVerifiedPassword] = useState("");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [searchInput, setSearchInput] = useState(query);
   const [hasSearched, setHasSearched] = useState(false);
@@ -102,6 +105,7 @@ export function WarehouseShelfFinder() {
   const [selectedPackagingCategory, setSelectedPackagingCategory] =
     useState<PackagingCategory>("一般");
   const productInputRef = useRef<HTMLInputElement>(null);
+  const uploadPasswordRef = useRef("");
 
   const filteredProducts = useMemo(
     () => (hasSearched && query.trim().length > 0 ? selectFilteredProducts(products, query) : []),
@@ -122,8 +126,8 @@ export function WarehouseShelfFinder() {
 
     try {
       const [productsResponse, requestsResponse] = await Promise.all([
-        apiRequest<ProductsApiResponse>("/api/products"),
-        apiRequest<RepickRequestsApiResponse>("/api/repick-requests")
+        apiRequest<ProductsApiResponse>("/api/products", verifiedPassword),
+        apiRequest<RepickRequestsApiResponse>("/api/repick-requests", verifiedPassword)
       ]);
 
       if (productsResponse.ok) {
@@ -142,11 +146,40 @@ export function WarehouseShelfFinder() {
     } finally {
       setIsLoadingOnlineData(false);
     }
-  }, [setErrorMessage, setProducts]);
+  }, [setErrorMessage, setProducts, verifiedPassword]);
 
   useEffect(() => {
-    void loadOnlineData();
-  }, [loadOnlineData]);
+    if (isAuthenticated) {
+      void loadOnlineData();
+    }
+  }, [isAuthenticated, loadOnlineData]);
+
+  const handleLogin = async () => {
+    const password = appPassword.trim();
+
+    if (!password) {
+      setErrorMessage("共通パスワードを入力してください。");
+      return;
+    }
+
+    setErrorMessage(null);
+
+    try {
+      const response = await apiRequest<BasicApiResponse>("/api/auth", password, {
+        method: "POST"
+      });
+
+      if (!response.ok) {
+        setErrorMessage(response.errorMessage);
+        return;
+      }
+
+      setVerifiedPassword(password);
+      setIsAuthenticated(true);
+    } catch (error) {
+      setErrorMessage(getClientErrorMessage(error));
+    }
+  };
 
   const handleProductImport = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -160,8 +193,9 @@ export function WarehouseShelfFinder() {
     setIsImporting(false);
 
     if (result.ok) {
-      const response = await apiRequest<ProductsApiResponse>("/api/products", {
+      const response = await apiRequest<ProductsApiResponse>("/api/products", verifiedPassword, {
         method: "POST",
+        uploadPassword: uploadPasswordRef.current,
         body: {
           sourceName: result.sourceName,
           products: result.value
@@ -171,6 +205,7 @@ export function WarehouseShelfFinder() {
       if (!response.ok) {
         setErrorMessage(response.errorMessage);
         event.target.value = "";
+        uploadPasswordRef.current = "";
         return;
       }
 
@@ -184,6 +219,7 @@ export function WarehouseShelfFinder() {
     }
 
     event.target.value = "";
+    uploadPasswordRef.current = "";
   };
 
   const handleSearch = () => {
@@ -282,17 +318,21 @@ export function WarehouseShelfFinder() {
     }
 
     const now = new Date().toISOString();
-    const response = await apiRequest<RepickRequestsApiResponse>("/api/repick-requests", {
-      method: "POST",
-      body: {
-        items: cartItems.map((item) => ({
-          ...item,
-          status: "pending",
-          createdAt: now,
-          updatedAt: now
-        }))
+    const response = await apiRequest<RepickRequestsApiResponse>(
+      "/api/repick-requests",
+      verifiedPassword,
+      {
+        method: "POST",
+        body: {
+          items: cartItems.map((item) => ({
+            ...item,
+            status: "pending",
+            createdAt: now,
+            updatedAt: now
+          }))
+        }
       }
-    });
+    );
 
     if (!response.ok) {
       setErrorMessage(response.errorMessage);
@@ -308,6 +348,7 @@ export function WarehouseShelfFinder() {
   const handleStatusChange = async (requestId: string, status: RequestStatus) => {
     const response = await apiRequest<BasicApiResponse>(
       `/api/repick-requests/${encodeURIComponent(requestId)}`,
+      verifiedPassword,
       {
         method: "PATCH",
         body: { status }
@@ -325,6 +366,7 @@ export function WarehouseShelfFinder() {
   const handleDeleteRequest = async (requestId: string) => {
     const response = await apiRequest<BasicApiResponse>(
       `/api/repick-requests/${encodeURIComponent(requestId)}`,
+      verifiedPassword,
       {
         method: "DELETE"
       }
@@ -339,8 +381,52 @@ export function WarehouseShelfFinder() {
   };
 
   const handleOpenProductFileDialog = () => {
+    const uploadPassword = window.prompt("アップロード用パスワードを入力してください。");
+
+    if (!uploadPassword) {
+      return;
+    }
+
+    uploadPasswordRef.current = uploadPassword;
     productInputRef.current?.click();
   };
+
+  if (!isAuthenticated) {
+    return (
+      <main className="shell authShell">
+        <section className="authPanel" aria-label="ログイン">
+          <div>
+            <h1>商品検索</h1>
+            <p>共通パスワードを入力してください。</p>
+          </div>
+          <form
+            className="authForm"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleLogin();
+            }}
+          >
+            <input
+              type="password"
+              value={appPassword}
+              onChange={(event) => setAppPassword(event.target.value)}
+              placeholder="共通パスワード"
+              aria-label="共通パスワード"
+            />
+            <button className="requestButton" type="submit">
+              ログイン
+            </button>
+          </form>
+          {errorMessage ? (
+            <div className="errorBanner" role="alert">
+              <AlertTriangle size={18} aria-hidden="true" />
+              <span>{errorMessage}</span>
+            </div>
+          ) : null}
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="shell">
@@ -722,15 +808,19 @@ function isPackagingCategory(value: unknown): value is PackagingCategory {
 
 async function apiRequest<T>(
   path: string,
+  password: string,
   options: {
     method?: "GET" | "POST" | "PATCH" | "DELETE";
     body?: unknown;
+    uploadPassword?: string;
   } = {}
 ): Promise<T> {
   const response = await fetch(path, {
     method: options.method ?? "GET",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      "x-app-password": password,
+      ...(options.uploadPassword ? { "x-upload-password": options.uploadPassword } : {})
     },
     body: options.body === undefined ? undefined : JSON.stringify(options.body)
   });

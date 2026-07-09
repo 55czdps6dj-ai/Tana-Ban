@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseRequest } from "@/lib/server/supabase-rest";
+import { supabaseRequest, verifySharedPassword } from "@/lib/server/supabase-rest";
 
 type RequestStatus = "pending" | "completed";
 type PackagingCategory = "一般" | "簡易" | "完全" | "抱き合せ";
@@ -36,7 +36,14 @@ type RepickRequestPostBody = {
   items?: unknown;
 };
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (!verifySharedPassword(request)) {
+    return NextResponse.json(
+      { ok: false, errorMessage: "パスワードが違います。" },
+      { status: 401 }
+    );
+  }
+
   try {
     const rows = await supabaseRequest<RepickRequestRow[]>(
       "repick_requests?select=*&order=updated_at.desc"
@@ -55,6 +62,13 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!verifySharedPassword(request)) {
+    return NextResponse.json(
+      { ok: false, errorMessage: "パスワードが違います。" },
+      { status: 401 }
+    );
+  }
+
   try {
     const body = (await request.json()) as RepickRequestPostBody;
 
