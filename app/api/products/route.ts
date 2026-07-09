@@ -1,11 +1,6 @@
 import { NextResponse } from "next/server";
 import type { ProductRecord } from "@/lib/warehouse-types";
-import {
-  getSupabaseConfig,
-  supabaseRequest,
-  verifySharedPassword,
-  verifyUploadPassword
-} from "@/lib/server/supabase-rest";
+import { getSupabaseConfig, supabaseRequest } from "@/lib/server/supabase-rest";
 
 type ProductRow = {
   id: string;
@@ -23,14 +18,7 @@ type ProductPostBody = {
   products?: unknown;
 };
 
-export async function GET(request: Request) {
-  if (!verifySharedPassword(request)) {
-    return NextResponse.json(
-      { ok: false, errorMessage: "パスワードが違います。" },
-      { status: 401 }
-    );
-  }
-
+export async function GET() {
   const config = getSupabaseConfig();
 
   if (!config.configured) {
@@ -60,13 +48,6 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!verifySharedPassword(request) || !verifyUploadPassword(request)) {
-    return NextResponse.json(
-      { ok: false, errorMessage: "アップロード用パスワードが違います。" },
-      { status: 401 }
-    );
-  }
-
   try {
     const body = (await request.json()) as ProductPostBody;
 

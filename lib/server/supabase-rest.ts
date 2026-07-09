@@ -39,41 +39,6 @@ export function getSupabaseConfig(): SupabaseConfigStatus {
   };
 }
 
-export function verifySharedPassword(request: Request): boolean {
-  const configuredPassword = getConfiguredSharedPassword();
-  const providedPassword = normalizePassword(request.headers.get("x-app-password"));
-
-  return Boolean(configuredPassword && providedPassword && providedPassword === configuredPassword);
-}
-
-export function verifyUploadPassword(request: Request): boolean {
-  const uploadPassword = normalizePassword(
-    process.env.ADMIN_UPLOAD_PASSWORD ?? process.env.APP_SHARED_PASSWORD
-  );
-  const providedPassword = normalizePassword(request.headers.get("x-upload-password"));
-
-  return Boolean(uploadPassword && providedPassword && providedPassword === uploadPassword);
-}
-
-export function hasSharedPasswordConfig(): boolean {
-  return Boolean(getConfiguredSharedPassword());
-}
-
-function getConfiguredSharedPassword(): string | null {
-  return normalizePassword(process.env.APP_SHARED_PASSWORD);
-}
-
-function normalizePassword(value: string | null | undefined): string | null {
-  if (!value) {
-    return null;
-  }
-
-  const normalizedValue = value.normalize("NFKC").trim();
-  const unquotedValue = normalizedValue.replace(/^["'](.+)["']$/, "$1").trim();
-
-  return unquotedValue.length > 0 ? unquotedValue : null;
-}
-
 export async function supabaseRequest<T>(
   path: string,
   options: SupabaseRequestOptions = {}

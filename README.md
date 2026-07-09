@@ -8,7 +8,6 @@
 
 ## 現在の機能
 
-- 共通パスワードによるログイン
 - 商品マスタExcelのオンライン保存
 - 単品番号・商品名・型番・棚番号による部分一致検索
 - 包装場区分つきの再ピック依頼カート
@@ -43,8 +42,6 @@ http://localhost:3000
 ```text
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
-APP_SHARED_PASSWORD=現場共通パスワード
-ADMIN_UPLOAD_PASSWORD=アップロード用パスワード
 ```
 
 ## 商品Excelの形式
@@ -104,8 +101,6 @@ Environment Variables に以下を設定してください。
 | --- | --- |
 | `SUPABASE_URL` | Supabase Project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service_role key |
-| `APP_SHARED_PASSWORD` | 現場20人が使う共通パスワード |
-| `ADMIN_UPLOAD_PASSWORD` | 商品マスタExcelアップロード用パスワード |
 
 ## StackBlitzで見る手順
 
