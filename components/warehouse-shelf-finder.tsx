@@ -19,7 +19,7 @@ import { selectFilteredProducts, useWarehouseStore } from "@/stores/warehouse-st
 
 type RequestStatus = "pending" | "completed";
 type ActiveTab = "search" | "pending" | "completed";
-type PackagingCategory = "一般" | "簡易" | "完全" | "抱き合せ";
+type PackagingCategory = "一般" | "簡易" | "完全" | "抱き合せ" | "その他";
 
 type RepickRequest = {
   id: string;
@@ -76,7 +76,13 @@ type BasicApiResponse =
       errorMessage: string;
     };
 
-const packagingCategoryOptions: PackagingCategory[] = ["一般", "簡易", "完全", "抱き合せ"];
+const packagingCategoryOptions: PackagingCategory[] = [
+  "一般",
+  "簡易",
+  "完全",
+  "抱き合せ",
+  "その他"
+];
 
 export function WarehouseShelfFinder() {
   const {

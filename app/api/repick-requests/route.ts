@@ -6,7 +6,7 @@ import {
 } from "@/lib/server/supabase-rest";
 
 type RequestStatus = "pending" | "completed";
-type PackagingCategory = "一般" | "簡易" | "完全" | "抱き合せ";
+type PackagingCategory = "一般" | "簡易" | "完全" | "抱き合せ" | "その他";
 
 type RepickRequest = {
   id: string;
@@ -227,7 +227,7 @@ function isWritableRepickRequest(value: unknown): value is RepickRequest {
 }
 
 function isPackagingCategory(value: unknown): value is PackagingCategory {
-  return ["一般", "簡易", "完全", "抱き合せ"].some((option) => option === value);
+  return ["一般", "簡易", "完全", "抱き合せ", "その他"].some((option) => option === value);
 }
 
 function getErrorMessage(error: unknown): string {
