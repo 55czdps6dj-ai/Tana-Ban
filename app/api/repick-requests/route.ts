@@ -93,6 +93,7 @@ export async function POST(request: Request) {
     }
 
     const now = new Date().toISOString();
+    const writtenRows: RepickRequestRow[] = [];
 
     for (const item of items) {
       const existingRows = await supabaseRequest<RepickRequestRow[]>(
@@ -108,23 +109,24 @@ export async function POST(request: Request) {
       const existingRow = existingRows[0];
 
       if (existingRow) {
-        await supabaseRequest<RepickRequestRow[]>(
+        const updatedRows = await supabaseRequest<RepickRequestRow[]>(
           `repick_requests?id=eq.${encodeURIComponent(existingRow.id)}`,
           {
             method: "PATCH",
-            prefer: "return=minimal",
+            prefer: "return=representation",
             body: {
               quantity: existingRow.quantity + item.quantity,
               updated_at: now
             }
           }
         );
+        writtenRows.push(...updatedRows);
         continue;
       }
 
-      await supabaseRequest<RepickRequestRow[]>("repick_requests", {
+      const insertedRows = await supabaseRequest<RepickRequestRow[]>("repick_requests", {
         method: "POST",
-        prefer: "return=minimal",
+        prefer: "return=representation",
         body: toRepickRequestRow({
           ...item,
           id: item.id,
@@ -133,15 +135,17 @@ export async function POST(request: Request) {
           updatedAt: now
         })
       });
+      writtenRows.push(...insertedRows);
     }
 
     const rows = await supabaseRequestAllPages<RepickRequestRow>(
       "repick_requests?select=*&order=updated_at.desc"
     );
+    const mergedRows = mergeRowsById(rows, writtenRows);
 
     return NextResponse.json({
       ok: true,
-      requests: rows.map(toRepickRequest)
+      requests: mergedRows.map(toRepickRequest)
     });
   } catch (error) {
     return NextResponse.json(
@@ -181,6 +185,25 @@ function toRepickRequestRow(request: RepickRequest): RepickRequestRow {
     created_at: request.createdAt,
     updated_at: request.updatedAt
   };
+}
+
+function mergeRowsById(
+  rows: RepickRequestRow[],
+  authoritativeRows: RepickRequestRow[]
+): RepickRequestRow[] {
+  const rowMap = new Map<string, RepickRequestRow>();
+
+  for (const row of rows) {
+    rowMap.set(row.id, row);
+  }
+
+  for (const row of authoritativeRows) {
+    rowMap.set(row.id, row);
+  }
+
+  return Array.from(rowMap.values()).sort(
+    (a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at)
+  );
 }
 
 function isWritableRepickRequest(value: unknown): value is RepickRequest {

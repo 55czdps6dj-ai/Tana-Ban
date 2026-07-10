@@ -109,6 +109,7 @@ export function WarehouseShelfFinder() {
     useState<PackagingCategory>("一般");
   const productInputRef = useRef<HTMLInputElement>(null);
   const uploadPasswordRef = useRef("");
+  const isSubmittingOrderRef = useRef(false);
 
   const filteredProducts = useMemo(
     () => (hasSearched && query.trim().length > 0 ? selectFilteredProducts(products, query) : []),
@@ -337,10 +338,12 @@ export function WarehouseShelfFinder() {
   };
 
   const handleConfirmCart = async () => {
-    if (cartItems.length === 0 || isSubmittingOrder) {
+    if (cartItems.length === 0 || isSubmittingOrderRef.current) {
       return;
     }
 
+    const itemsToSubmit = cartItems;
+    isSubmittingOrderRef.current = true;
     setIsSubmittingOrder(true);
     setErrorMessage(null);
 
@@ -352,7 +355,7 @@ export function WarehouseShelfFinder() {
         {
           method: "POST",
           body: {
-            items: cartItems.map((item) => ({
+            items: itemsToSubmit.map((item) => ({
               ...item,
               status: "pending",
               createdAt: now,
@@ -375,6 +378,7 @@ export function WarehouseShelfFinder() {
     } catch (error) {
       setErrorMessage(getClientErrorMessage(error));
     } finally {
+      isSubmittingOrderRef.current = false;
       setIsSubmittingOrder(false);
     }
   };
