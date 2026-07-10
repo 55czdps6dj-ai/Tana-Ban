@@ -819,6 +819,30 @@ p {
   margin-top: 16px;
 }
 
+.orderComplete {
+  display: flex;
+  min-height: 260px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.orderCompleteIcon {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.orderComplete h2 {
+  font-size: 22px;
+}
+
 @media (max-width: 920px) {
   .shell {
     gap: 10px;

@@ -97,6 +97,8 @@ export function WarehouseShelfFinder() {
   const [hasSearched, setHasSearched] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCartConfirmOpen, setIsCartConfirmOpen] = useState(false);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  const [isOrderComplete, setIsOrderComplete] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [productPendingCart, setProductPendingCart] = useState<ProductRecord | null>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>("search");
@@ -335,37 +337,51 @@ export function WarehouseShelfFinder() {
   };
 
   const handleConfirmCart = async () => {
-    if (cartItems.length === 0) {
+    if (cartItems.length === 0 || isSubmittingOrder) {
       return;
     }
+
+    setIsSubmittingOrder(true);
+    setErrorMessage(null);
 
     const now = new Date().toISOString();
-    const response = await apiRequest<RepickRequestsApiResponse>(
-      "/api/repick-requests",
-      verifiedPassword,
-      {
-        method: "POST",
-        body: {
-          items: cartItems.map((item) => ({
-            ...item,
-            status: "pending",
-            createdAt: now,
-            updatedAt: now
-          }))
+    try {
+      const response = await apiRequest<RepickRequestsApiResponse>(
+        "/api/repick-requests",
+        verifiedPassword,
+        {
+          method: "POST",
+          body: {
+            items: cartItems.map((item) => ({
+              ...item,
+              status: "pending",
+              createdAt: now,
+              updatedAt: now
+            }))
+          }
         }
+      );
+
+      if (!response.ok) {
+        setErrorMessage(response.errorMessage);
+        return;
       }
-    );
 
-    if (!response.ok) {
-      setErrorMessage(response.errorMessage);
-      return;
+      setRequests(response.requests.map(toRepickRequest));
+      setCartItems([]);
+      setIsOrderComplete(true);
+      setSuccessMessage("発注しました。");
+      setActiveTab("pending");
+    } catch (error) {
+      setErrorMessage(getClientErrorMessage(error));
+    } finally {
+      setIsSubmittingOrder(false);
     }
+  };
 
-    setRequests(response.requests.map(toRepickRequest));
-    setCartItems([]);
+  const handleCloseCartConfirm = () => {
     setIsCartConfirmOpen(false);
-    setSuccessMessage("発注しました。");
-    setActiveTab("pending");
+    setIsOrderComplete(false);
   };
 
   const handleStatusChange = async (requestId: string, status: RequestStatus) => {
@@ -715,65 +731,83 @@ export function WarehouseShelfFinder() {
       {isCartConfirmOpen ? (
         <div className="modalBackdrop" role="presentation">
           <section className="confirmDialog" aria-label="再ピック依頼確認" role="dialog">
-            <div className="paneHeader">
-              <div>
-                <h2>発注前確認</h2>
-                <p>内容を確認してから発注してください。</p>
-              </div>
-            </div>
-
-            {cartItems.length > 0 ? (
-              <div className="cartList">
-                {cartItems.map((item) => (
-                  <div className="cartItem" key={item.id}>
-                    <div className="cartItemBody">
-                      <strong>{item.productName || "商品名未設定"}</strong>
-                      <small>単品番号: {item.itemNumber || "未設定"}</small>
-                      <small>型番: {item.modelNumber || "未設定"}</small>
-                      <small>商品区分: {item.productCategory || "未設定"}</small>
-                      <small>棚番号: {item.shelfNumber}</small>
-                      <small>包装場区分: {item.packagingCategory}</small>
-                    </div>
-                    <QuantityStepper
-                      label="数量"
-                      value={item.quantity}
-                      onChange={(value) => handleCartQuantityStep(item.id, value)}
-                      onInputChange={(value) => handleCartQuantityChange(item.id, value)}
-                    />
-                    <button
-                      className="deleteButton"
-                      type="button"
-                      onClick={() => handleRemoveCartItem(item.id)}
-                      title="カートから削除"
-                      aria-label="カートから削除"
-                    >
-                      <Trash2 size={16} aria-hidden="true" />
-                    </button>
-                  </div>
-                ))}
+            {isOrderComplete ? (
+              <div className="orderComplete">
+                <span className="orderCompleteIcon">
+                  <Check size={28} aria-hidden="true" />
+                </span>
+                <div>
+                  <h2>発注しました。</h2>
+                  <p>再ピック依頼に登録しました。</p>
+                </div>
+                <button className="requestButton" type="button" onClick={handleCloseCartConfirm}>
+                  再ピック依頼を見る
+                </button>
               </div>
             ) : (
-              <div className="compactEmptyState">カートに商品がありません。</div>
-            )}
+              <>
+                <div className="paneHeader">
+                  <div>
+                    <h2>発注前確認</h2>
+                    <p>内容を確認してから発注してください。</p>
+                  </div>
+                </div>
 
-            <div className="confirmActions">
-              <button
-                className="secondaryButton"
-                type="button"
-                onClick={() => setIsCartConfirmOpen(false)}
-              >
-                戻る
-              </button>
-              <button
-                className="requestButton"
-                type="button"
-                onClick={handleConfirmCart}
-                disabled={cartItems.length === 0}
-              >
-                <Plus size={16} aria-hidden="true" />
-                発注
-              </button>
-            </div>
+                {cartItems.length > 0 ? (
+                  <div className="cartList">
+                    {cartItems.map((item) => (
+                      <div className="cartItem" key={item.id}>
+                        <div className="cartItemBody">
+                          <strong>{item.productName || "商品名未設定"}</strong>
+                          <small>単品番号: {item.itemNumber || "未設定"}</small>
+                          <small>型番: {item.modelNumber || "未設定"}</small>
+                          <small>商品区分: {item.productCategory || "未設定"}</small>
+                          <small>棚番号: {item.shelfNumber}</small>
+                          <small>包装場区分: {item.packagingCategory}</small>
+                        </div>
+                        <QuantityStepper
+                          label="数量"
+                          value={item.quantity}
+                          onChange={(value) => handleCartQuantityStep(item.id, value)}
+                          onInputChange={(value) => handleCartQuantityChange(item.id, value)}
+                        />
+                        <button
+                          className="deleteButton"
+                          type="button"
+                          onClick={() => handleRemoveCartItem(item.id)}
+                          title="カートから削除"
+                          aria-label="カートから削除"
+                        >
+                          <Trash2 size={16} aria-hidden="true" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="compactEmptyState">カートに商品がありません。</div>
+                )}
+
+                <div className="confirmActions">
+                  <button
+                    className="secondaryButton"
+                    type="button"
+                    onClick={handleCloseCartConfirm}
+                    disabled={isSubmittingOrder}
+                  >
+                    戻る
+                  </button>
+                  <button
+                    className="requestButton"
+                    type="button"
+                    onClick={handleConfirmCart}
+                    disabled={cartItems.length === 0 || isSubmittingOrder}
+                  >
+                    <Plus size={16} aria-hidden="true" />
+                    {isSubmittingOrder ? "発注中..." : "発注"}
+                  </button>
+                </div>
+              </>
+            )}
           </section>
         </div>
       ) : null}
