@@ -394,6 +394,12 @@ export function WarehouseShelfFinder() {
     setIsOrderComplete(false);
   };
 
+  const handleReturnToSearchAfterOrder = () => {
+    setIsCartConfirmOpen(false);
+    setIsOrderComplete(false);
+    setActiveTab("search");
+  };
+
   const handleStatusChange = async (requestId: string, status: RequestStatus) => {
     const response = await apiRequest<BasicApiResponse>(
       `/api/repick-requests/${encodeURIComponent(requestId)}`,
@@ -750,9 +756,18 @@ export function WarehouseShelfFinder() {
                   <h2>発注しました。</h2>
                   <p>再ピック依頼に登録しました。</p>
                 </div>
-                <button className="requestButton" type="button" onClick={handleCloseCartConfirm}>
-                  再ピック依頼を見る
-                </button>
+                <div className="orderCompleteActions">
+                  <button className="requestButton" type="button" onClick={handleCloseCartConfirm}>
+                    再ピック依頼を見る
+                  </button>
+                  <button
+                    className="secondaryButton"
+                    type="button"
+                    onClick={handleReturnToSearchAfterOrder}
+                  >
+                    戻る
+                  </button>
+                </div>
               </div>
             ) : (
               <>

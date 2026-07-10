@@ -843,6 +843,13 @@ p {
   font-size: 22px;
 }
 
+.orderCompleteActions {
+  display: flex;
+  width: min(280px, 100%);
+  flex-direction: column;
+  gap: 8px;
+}
+
 @media (max-width: 920px) {
   .shell {
     gap: 10px;
