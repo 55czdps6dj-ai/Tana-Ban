@@ -581,7 +581,8 @@ p {
 
 .requestButton,
 .statusButton,
-.deleteButton {
+.deleteButton,
+.dangerButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -597,6 +598,19 @@ p {
   background: var(--primary);
   color: #ffffff;
   padding: 0 12px;
+}
+
+.dangerButton {
+  gap: 6px;
+  border: 1px solid var(--danger);
+  background: var(--danger);
+  color: #ffffff;
+  padding: 0 12px;
+}
+
+.dangerButton:disabled {
+  border-color: #fca5a5;
+  background: #fca5a5;
 }
 
 .deleteButton {
@@ -714,6 +728,10 @@ p {
   box-shadow: 0 24px 70px rgba(17, 24, 39, 0.25);
 }
 
+.compactDialog {
+  width: min(520px, 100%);
+}
+
 .cartList {
   display: flex;
   min-height: 0;
@@ -748,6 +766,25 @@ p {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 14px;
+}
+
+.deleteConfirmItem {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 14px;
+}
+
+.deleteConfirmItem strong {
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.deleteConfirmItem small {
+  color: var(--muted);
 }
 
 .singleConfirmItem strong {

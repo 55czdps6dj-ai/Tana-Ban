@@ -105,6 +105,8 @@ export function WarehouseShelfFinder() {
   const [isCartConfirmOpen, setIsCartConfirmOpen] = useState(false);
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [isOrderComplete, setIsOrderComplete] = useState(false);
+  const [requestPendingDelete, setRequestPendingDelete] = useState<RepickRequest | null>(null);
+  const [isDeletingRequest, setIsDeletingRequest] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [productPendingCart, setProductPendingCart] = useState<ProductRecord | null>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>("search");
@@ -418,21 +420,41 @@ export function WarehouseShelfFinder() {
     await loadOnlineData();
   };
 
-  const handleDeleteRequest = async (requestId: string) => {
-    const response = await apiRequest<BasicApiResponse>(
-      `/api/repick-requests/${encodeURIComponent(requestId)}`,
-      verifiedPassword,
-      {
-        method: "DELETE"
-      }
-    );
+  const handleDeleteRequest = async (requestId: string): Promise<boolean> => {
+    try {
+      const response = await apiRequest<BasicApiResponse>(
+        `/api/repick-requests/${encodeURIComponent(requestId)}`,
+        verifiedPassword,
+        {
+          method: "DELETE"
+        }
+      );
 
-    if (!response.ok) {
-      setErrorMessage(response.errorMessage);
+      if (!response.ok) {
+        setErrorMessage(response.errorMessage);
+        return false;
+      }
+
+      setRequests((current) => current.filter((request) => request.id !== requestId));
+      return true;
+    } catch (error) {
+      setErrorMessage(getClientErrorMessage(error));
+      return false;
+    }
+  };
+
+  const handleConfirmDeleteRequest = async () => {
+    if (!requestPendingDelete || isDeletingRequest) {
       return;
     }
 
-    setRequests((current) => current.filter((request) => request.id !== requestId));
+    setIsDeletingRequest(true);
+    const isDeleted = await handleDeleteRequest(requestPendingDelete.id);
+    setIsDeletingRequest(false);
+
+    if (isDeleted) {
+      setRequestPendingDelete(null);
+    }
   };
 
   const handleOpenProductFileDialog = () => {
@@ -736,7 +758,7 @@ export function WarehouseShelfFinder() {
         <section className="requestPanel" aria-label="再ピック依頼リスト">
           <RequestList
             emptyMessage="未対応の再ピック依頼はありません。"
-            onDelete={handleDeleteRequest}
+            onDelete={setRequestPendingDelete}
             onStatusChange={handleStatusChange}
             requests={pendingRequests}
             title="再ピック依頼"
@@ -841,12 +863,52 @@ export function WarehouseShelfFinder() {
         <section className="requestPanel" aria-label="対応済みリスト">
           <RequestList
             emptyMessage="対応済みの再ピック依頼はありません。"
-            onDelete={handleDeleteRequest}
+            onDelete={setRequestPendingDelete}
             onStatusChange={handleStatusChange}
             requests={completedRequests}
             title="対応済み"
           />
         </section>
+      ) : null}
+
+      {requestPendingDelete ? (
+        <div className="modalBackdrop" role="presentation">
+          <section className="confirmDialog compactDialog" aria-label="削除確認" role="dialog">
+            <div className="paneHeader">
+              <div>
+                <h2>削除確認</h2>
+                <p>この依頼を削除します。元に戻せません。</p>
+              </div>
+            </div>
+            <div className="deleteConfirmItem">
+              <strong>{requestPendingDelete.productName || "商品名未設定"}</strong>
+              <small>単品番号: {requestPendingDelete.itemNumber || "未設定"}</small>
+              <small>型番: {requestPendingDelete.modelNumber || "未設定"}</small>
+              <small>棚番号: {requestPendingDelete.shelfNumber}</small>
+              <small>包装場区分: {requestPendingDelete.packagingCategory}</small>
+              <small>数量: {requestPendingDelete.quantity}</small>
+            </div>
+            <div className="confirmActions">
+              <button
+                className="secondaryButton"
+                type="button"
+                onClick={() => setRequestPendingDelete(null)}
+                disabled={isDeletingRequest}
+              >
+                キャンセル
+              </button>
+              <button
+                className="dangerButton"
+                type="button"
+                onClick={() => void handleConfirmDeleteRequest()}
+                disabled={isDeletingRequest}
+              >
+                <Trash2 size={16} aria-hidden="true" />
+                {isDeletingRequest ? "削除中..." : "削除する"}
+              </button>
+            </div>
+          </section>
+        </div>
       ) : null}
     </main>
   );
@@ -961,7 +1023,7 @@ function RequestList({
   title
 }: {
   emptyMessage: string;
-  onDelete: (requestId: string) => void | Promise<void>;
+  onDelete: (request: RepickRequest) => void;
   onStatusChange: (requestId: string, status: RequestStatus) => void | Promise<void>;
   requests: RepickRequest[];
   title: string;
@@ -1007,7 +1069,7 @@ function RequestList({
                 <button
                   className="deleteButton"
                   type="button"
-                  onClick={() => void onDelete(request.id)}
+                  onClick={() => onDelete(request)}
                   title="削除"
                   aria-label="削除"
                 >
